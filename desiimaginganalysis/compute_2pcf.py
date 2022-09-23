@@ -1,5 +1,6 @@
 from select_imaging_targets import *
 
+from matplotlib import pyplot as plt
 import numpy as np
 
 import Corrfunc
@@ -26,3 +27,13 @@ DD_counts, DR_counts,
 DR_counts, RR_counts)
 
 print(wtheta)
+
+plt.xscale("log")
+plt.yscale("log")
+plt.xlabel(r"$\theta$")
+plt.ylabel(r"w($\theta$)")
+plt.scatter(
+    bins[:-1],
+    wtheta
+)
+plt.savefig("test2PCF.pdf")
