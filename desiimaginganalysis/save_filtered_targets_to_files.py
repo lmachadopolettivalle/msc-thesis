@@ -10,11 +10,12 @@ COLUMNS = [
     "RA", "RA_IVAR", "DEC", "DEC_IVAR",
     "FLUX_G", "FLUX_R", "FLUX_Z",
     "FLUX_IVAR_G", "FLUX_IVAR_R", "FLUX_IVAR_Z",
+    "MW_TRANSMISSION_G", "MW_TRANSMISSION_R", "MW_TRANSMISSION_Z",
     "PHOTSYS", "TARGETID",
     "DESI_TARGET", "BGS_TARGET",
 ]
 
 data = targets[:][COLUMNS]
 
-with open("targets_small.npy", "wb") as f:
+with open("targets.npy", "wb") as f:
     np.save(f, data)
