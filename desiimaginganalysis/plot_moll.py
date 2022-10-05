@@ -8,7 +8,7 @@ from desiutil.plots import prepare_data, init_sky, plot_grid_map, plot_healpix_m
 from matplotlib import pyplot as plt
 import numpy as np
 
-from generate_mask_footprint_shapely import load_boundary_multipolygon, get_boundary_coordinates
+from generate_mask_footprint_shapely import load_boundary_multipolygon
 
 # Make empty mollweide projection plot, with equatorial coordinates
 ax = init_sky(galactic_plane_color=None, ecliptic_plane_color=None)
