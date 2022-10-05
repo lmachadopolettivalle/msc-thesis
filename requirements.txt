@@ -2,6 +2,7 @@ Corrfunc
 fitsio
 numpy
 scipy
+Shapely
 astropy
 pyyaml
 requests
