@@ -28,10 +28,6 @@ print("north: ", area_footprint_north)
 print("south: ", area_footprint_south)
 print("intersection: ", area_footprint_intersection)
 
-# Make empty mollweide projection plot, with equatorial coordinates
-#ax = init_sky(galactic_plane_color=None, ecliptic_plane_color=None)
-
-
 m = np.zeros(npix)
 
 m[footprint_north] = 0.5
@@ -52,8 +48,7 @@ hp.mollview(
 
 # Display lines for Dec=+32 and Dec=-18
 # When using projscatter, with lonlat=True,
-# first input RA (from -180 to +180), then Dec (from -90 to +90)
-ras = np.linspace(-180, 180, 700)
+# first input RA (from 0 to 360), then Dec (from -90 to +90)
 ras = np.linspace(0, 360, 700)
 north_south_split_radians = 32
 desi_southmost_radians = -15
