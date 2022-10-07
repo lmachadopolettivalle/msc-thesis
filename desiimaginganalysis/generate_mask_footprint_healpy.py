@@ -3,6 +3,8 @@ import healpy as hp
 import numpy as np
 from shapely.geometry import LineString, Point, Polygon
 
+from tqdm import tqdm
+
 from desiutil.plots import prepare_data, init_sky, plot_grid_map, plot_healpix_map, plot_sky_circles, plot_sky_binned
 
 from generate_mask_footprint_shapely import load_boundary_multipolygon
@@ -11,17 +13,17 @@ from generate_mask_footprint_shapely import load_boundary_multipolygon
 shapely_footprint = load_boundary_multipolygon()
 
 # Create healpy pixels with a given nside
-nside = 4
+nside = 256
 npix = hp.nside2npix(nside)
 print("npix: ", npix)
 pixel_indices = range(npix)
 
 print(np.degrees(hp.nside2resol(nside)))
 
-pixels_in_footprint = []
+pixels_in_footprint = set()
 
 # Loop through the pixels, and get the coordinates of their boundary points
-for pixel_id in pixel_indices:
+for pixel_id in tqdm(pixel_indices):
     # Obtain boundary coords in (x, y, z)
     pixel_boundary_coords = np.transpose(
         hp.boundaries(
@@ -33,7 +35,6 @@ for pixel_id in pixel_indices:
     )
     # Convert to RA and Dec (RA: 0-360, DecL -90 - +90)
     ras, decs = hp.pixelfunc.vec2ang(pixel_boundary_coords, lonlat=True)
-    print(ras, decs)
 
     # TODO handle case when the pixel crosses the 0/360 RA line
     # NOTE I believe that, by checking the corners only, this issue is resolved
@@ -45,13 +46,13 @@ for pixel_id in pixel_indices:
             contains = False
             break
     if contains:
-        pixels_in_footprint.append(pixel_id)
+        pixels_in_footprint.add(pixel_id)
 
 
 # Save pixelids to file
 
-with open(f"pixels_in_footprint_for_nside_{nside}.npy", "wb") as f:
-    np.save(f, np.array(pixels_in_footprint))
+with open(f"pixels_in_footprint_for_nside_{nside}_method1.npy", "wb") as f:
+    np.save(f, np.array(list(pixels_in_footprint)))
 
 
 ax = init_sky(galactic_plane_color=None, ecliptic_plane_color=None)
