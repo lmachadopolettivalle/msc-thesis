@@ -54,6 +54,7 @@ hp.mollview(
 # When using projscatter, with lonlat=True,
 # first input RA (from -180 to +180), then Dec (from -90 to +90)
 ras = np.linspace(-180, 180, 700)
+ras = np.linspace(0, 360, 700)
 north_south_split_radians = 32
 desi_southmost_radians = -15
 
