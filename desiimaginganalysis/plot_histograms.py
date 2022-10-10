@@ -22,20 +22,26 @@ bin_count = 75
 compare_extinction_correction = False
 
 # Load target data
-with open("targets.npy", "rb") as f:
-    data = np.load(f)
+with open("/cluster/scratch/lmachado/DataProducts/targets/targets_BGS_TARGET.npy", "rb") as f:
+    bgs_targets = np.load(f)
+
+fluxes = {}
+mw_transmissions = {}
+for band in {"g", "r", "z"}:
+    with open(f"/cluster/scratch/lmachado/DataProducts/targets/targets_FLUX_{band.upper()}.npy", "rb") as f:
+        fluxes[band] = np.load(f)
+    with open(f"/cluster/scratch/lmachado/DataProducts/targets/targets_MW_TRANSMISSION_{band.upper()}.npy", "rb") as g:
+        mw_transmissions[band] = np.load(g)
 
 # Separate BGS Bright and BGS Faint targets
-bright_data = [i for i in data if "BGS_BRIGHT" in bgs_mask.names(i["BGS_TARGET"])]
-faint_data = [i for i in data if "BGS_FAINT" in bgs_mask.names(i["BGS_TARGET"])]
+bright_targets = np.array([i for i, bgs_target in enumerate(bgs_targets) if "BGS_BRIGHT" in bgs_mask.names(bgs_target)])
+faint_targets = np.array([i for i, bgs_target in enumerate(bgs_targets) if "BGS_FAINT" in bgs_mask.names(bgs_target)])
 
-
-def mag_from_flux(target, band="r", extinction_correction=True):
+def mag_from_flux(targets, band="r", extinction_correction=True):
     # Extinction-corrected magnitude in g, r, z bands
-    band = band.upper()
-    flux = target[f"FLUX_{band}"]
+    flux = fluxes[band][targets]
     if extinction_correction:
-        mw_transmission = target[f"MW_TRANSMISSION_{band}"]
+        mw_transmission = mw_transmissions[band][targets]
         return 22.5 - 2.5 * np.log10(flux / mw_transmission)
     else:
         return 22.5 - 2.5 * np.log10(flux)
@@ -50,8 +56,8 @@ if compare_extinction_correction:
 
 # Plot histograms of magnitudes in 3 bands
 for band in ["g", "r", "z"]:
-    bright_mags[band] = np.array([mag_from_flux(i, band=band, extinction_correction=True) for i in bright_data])
-    faint_mags[band] = np.array([mag_from_flux(i, band=band, extinction_correction=True) for i in faint_data])
+    bright_mags[band] = np.array(mag_from_flux(bright_targets, band=band, extinction_correction=True))
+    faint_mags[band] = np.array(mag_from_flux(faint_targets, band=band, extinction_correction=True))
 
     if compare_extinction_correction:
         bright_label = "BGS Bright (E.C.)"
@@ -60,13 +66,12 @@ for band in ["g", "r", "z"]:
         bright_label = "BGS Bright"
         faint_label = "BGS Faint"
 
-
     plt.hist(bright_mags[band], bins=bin_count, density=True, histtype="step", label=bright_label, color=bright_plot_color)
     plt.hist(faint_mags[band], bins=bin_count, density=True, histtype="step", label=faint_label, color=faint_plot_color)
 
     if compare_extinction_correction:
-        bright_mags_not_extinction_corrected[band] = np.array([mag_from_flux(i, band=band, extinction_correction=False) for i in bright_data])
-        faint_mags_not_extinction_corrected[band] = np.array([mag_from_flux(i, band=band, extinction_correction=False) for i in faint_data])
+        bright_mags_not_extinction_corrected[band] = np.array(mag_from_flux(bright_targets, band=band, extinction_correction=False))
+        faint_mags_not_extinction_corrected[band] = np.array(mag_from_flux(faint_targets, band=band, extinction_correction=False))
 
         plt.hist(bright_mags_not_extinction_corrected[band], bins=bin_count, density=True, histtype="stepfilled", alpha=0.5, label="BGS Bright (Not E.C.)", color=bright_plot_color)
         plt.hist(faint_mags_not_extinction_corrected[band], bins=bin_count, density=True, histtype="stepfilled", alpha=0.5, label="BGS Faint (Not E.C.)", color=faint_plot_color)

@@ -20,10 +20,10 @@ def mask(ras, decs, nside=512, nest=True, region="both"):
 
     # Load footprints
     if (region == "north") or (region == "both"):
-        with open(f"pixels_in_north_footprint_for_nside_{nside}.npy", "rb") as f:
+        with open(f"/cluster/scratch/lmachado/DataProducts/footprint/pixels_in_north_footprint_for_nside_{nside}.npy", "rb") as f:
             footprint_north = np.load(f)
     if (region == "south") or (region == "both"):
-        with open(f"pixels_in_south_footprint_for_nside_{nside}.npy", "rb") as f:
+        with open(f"/cluster/scratch/lmachado/DataProducts/footprint/pixels_in_south_footprint_for_nside_{nside}.npy", "rb") as f:
             footprint_south = np.load(f)
 
     footprint = set()
@@ -42,7 +42,6 @@ def mask(ras, decs, nside=512, nest=True, region="both"):
 if __name__ == "__main__":
     from tqdm import tqdm
 
-    PATH_TO_FOOTPRINT_FILES = "/cluster/home/lmachado/msc-thesis/dr9/footprints/"
     FOOTPRINT_FILES = {
         "north": "survey-bricks-dr9-north.fits",
         "south": "survey-bricks-dr9-south.fits",
@@ -56,7 +55,7 @@ if __name__ == "__main__":
     nside = 512
 
     for region, filename in FOOTPRINT_FILES.items():
-        with fits.open(f"{PATH_TO_FOOTPRINT_FILES}/{filename}") as f:
+        with fits.open(f"/cluster/scratch/lmachado/DESIImaging/dr9/{region}/footprint/{filename}") as f:
             data = f[1].data
 
             for brick in tqdm(data):
@@ -64,5 +63,5 @@ if __name__ == "__main__":
                 indices = hp_in_box(nside, radecbox, inclusive=True, fact=16)
                 pixel_indices[region].update(indices)
 
-        with open(f"pixels_in_{region}_footprint_for_nside_{nside}.npy", "wb") as f:
+        with open(f"/cluster/scratch/lmachado/DataProducts/footprint/pixels_in_{region}_footprint_for_nside_{nside}.npy", "wb") as f:
             np.save(f, np.array(list(pixel_indices[region])))

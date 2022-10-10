@@ -10,9 +10,9 @@ nside = 512
 npix = hp.nside2npix(nside)
 
 # Load footprints
-with open(f"pixels_in_north_footprint_for_nside_{nside}.npy", "rb") as f:
+with open(f"/cluster/scratch/lmachado/DataProducts/footprint/pixels_in_north_footprint_for_nside_{nside}.npy", "rb") as f:
     footprint_north = np.load(f)
-with open(f"pixels_in_south_footprint_for_nside_{nside}.npy", "rb") as f:
+with open(f"/cluster/scratch/lmachado/DataProducts/footprint/pixels_in_south_footprint_for_nside_{nside}.npy", "rb") as f:
     footprint_south = np.load(f)
 
 # Compute areas in square degrees of each mask

@@ -1,10 +1,16 @@
 from desitarget.cuts import select_targets
 from desitarget.targets import desi_mask, bgs_mask
+import os
 
-PATH_TO_SWEEP_FILES = "/cluster/home/lmachado/msc-thesis/dr9/sweepfiles/"
+REGION = "north"
 
-FILENAMES = ["sweep-040p025-050p030.fits", "sweep-260p025-270p030.fits", "sweep-010p000-020p005.fits", "sweep-020p025-030p030.fits", "sweep-240p025-250p030.fits"]
-FILENAMES += ["sweep-020m050-030m045.fits"]
+PATH_TO_SWEEP_FILES = f"/cluster/scratch/lmachado/DESIImaging/dr9/{REGION}/sweeps/"
+
+FILENAMES = os.listdir(PATH_TO_SWEEP_FILES)
+
+# Original files used for testing purposes
+#FILENAMES = ["sweep-040p025-050p030.fits", "sweep-260p025-270p030.fits", "sweep-010p000-020p005.fits", "sweep-020p025-030p030.fits", "sweep-240p025-250p030.fits"]
+#FILENAMES += ["sweep-020m050-030m045.fits"] # NOTE this file is in the south
 
 FILES = [f"{PATH_TO_SWEEP_FILES}/{filename}" for filename in FILENAMES]
 
@@ -15,7 +21,7 @@ targets, infiles = select_targets(
     tcnames=["BGS"],
     survey="main",
     backup=False,
-    return_infiles=True
+    return_infiles=True,
 )
 
 # Load RA, DEC from BGS targets
