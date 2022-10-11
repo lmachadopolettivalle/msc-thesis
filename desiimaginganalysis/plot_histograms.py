@@ -6,6 +6,10 @@ from matplotlib import pyplot as plt
 import numpy as np
 from desitarget.targets import bgs_mask
 
+CLIP_FLUX = 1e-16
+
+REGION = "north"
+
 blue = "#004488"
 yellow = "#ddaa33"
 red = "#bb5566"
@@ -22,15 +26,15 @@ bin_count = 75
 compare_extinction_correction = False
 
 # Load target data
-with open("/cluster/scratch/lmachado/DataProducts/targets/targets_BGS_TARGET.npy", "rb") as f:
+with open(f"/cluster/scratch/lmachado/DataProducts/targets/{REGION}/targets_BGS_TARGET.npy", "rb") as f:
     bgs_targets = np.load(f)
 
 fluxes = {}
 mw_transmissions = {}
 for band in {"g", "r", "z"}:
-    with open(f"/cluster/scratch/lmachado/DataProducts/targets/targets_FLUX_{band.upper()}.npy", "rb") as f:
+    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{REGION}/targets_FLUX_{band.upper()}.npy", "rb") as f:
         fluxes[band] = np.load(f)
-    with open(f"/cluster/scratch/lmachado/DataProducts/targets/targets_MW_TRANSMISSION_{band.upper()}.npy", "rb") as g:
+    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{REGION}/targets_MW_TRANSMISSION_{band.upper()}.npy", "rb") as g:
         mw_transmissions[band] = np.load(g)
 
 # Separate BGS Bright and BGS Faint targets
@@ -39,12 +43,38 @@ faint_targets = np.array([i for i, bgs_target in enumerate(bgs_targets) if "BGS_
 
 def mag_from_flux(targets, band="r", extinction_correction=True):
     # Extinction-corrected magnitude in g, r, z bands
+
     flux = fluxes[band][targets]
     if extinction_correction:
         mw_transmission = mw_transmissions[band][targets]
-        return 22.5 - 2.5 * np.log10(flux / mw_transmission)
+        mags = 22.5 - 2.5 * np.log10((flux / mw_transmission).clip(CLIP_FLUX))
     else:
-        return 22.5 - 2.5 * np.log10(flux)
+        mags = 22.5 - 2.5 * np.log10(flux.clip(CLIP_FLUX))
+
+    return mags
+
+def remove_spurious_mag_objects(mags_dict):
+    # Modify mags_dict to remove entries from all its mags,
+    # if mag in at least one of them is due to clipping of the flux.
+    # Explanation: due to the clip(1e-16), there will be a few objects (<10 or so)
+    # with magnitudes == 62.5.
+    # These objects can be ignored.
+
+    clip_mag = 22.5 - 2.5 * np.log10(CLIP_FLUX)
+
+    r_idx = mags_dict["r"] < clip_mag
+    g_idx = mags_dict["g"] < clip_mag
+    z_idx = mags_dict["z"] < clip_mag
+
+    all_idx = r_idx & g_idx & z_idx
+
+    clipped_mags_dict = {
+        k: v[all_idx]
+        for k, v in mags_dict.items()
+    }
+
+    return clipped_mags_dict
+
 
 # Dicts to hold magnitudes in each band
 bright_mags = {}
@@ -59,6 +89,15 @@ for band in ["g", "r", "z"]:
     bright_mags[band] = np.array(mag_from_flux(bright_targets, band=band, extinction_correction=True))
     faint_mags[band] = np.array(mag_from_flux(faint_targets, band=band, extinction_correction=True))
 
+# Remove unhelpful objects, which have spurious flux values
+bright_mags = remove_spurious_mag_objects(bright_mags)
+faint_mags = remove_spurious_mag_objects(faint_mags)
+
+print("Number of bright objects:", len(bright_mags["r"]))
+print("Number of faint objects:", len(faint_mags["r"]))
+
+# Plot histograms
+for band in ["g", "r", "z"]:
     if compare_extinction_correction:
         bright_label = "BGS Bright (E.C.)"
         faint_label = "BGS Faint (E.C.)"
@@ -89,11 +128,12 @@ for band in ["g", "r", "z"]:
     plt.legend()
     plt.grid()
     if compare_extinction_correction:
-        plt.savefig(f"{band}mag_hist_compare_extinction.pdf")
+        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/{band}mag_hist_compare_extinction.pdf")
     else:
-        plt.savefig(f"{band}mag_hist.pdf")
+        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/{band}mag_hist.pdf")
 
-    plt.show()
+    #plt.show()
+    plt.clf()
 
 # Plot histograms of colors
 bright_gminusr = bright_mags["g"] - bright_mags["r"]
@@ -111,8 +151,9 @@ plt.xlabel("g - r color")
 plt.ylabel("PDF")
 plt.legend()
 plt.grid()
-plt.savefig("gminusr_hist.pdf")
-plt.show()
+plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/gminusr_hist.pdf")
+#plt.show()
+plt.clf()
 
 # R - Z Color Histogram
 plt.hist(bright_rminusz, bins=bin_count, density=True, histtype="step", label="BGS Bright", color=bright_plot_color)
@@ -123,16 +164,28 @@ plt.xlabel("r - z color")
 plt.ylabel("PDF")
 plt.legend()
 plt.grid()
-plt.savefig("rminusz_hist.pdf")
-plt.show()
+plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/rminusz_hist.pdf")
+#plt.show()
+plt.clf()
 
+#####
 # G-R vs. R-Z color plot
-plt.scatter(bright_rminusz, bright_gminusr, label="BGS Bright", s=2, c=bright_plot_color)
-plt.scatter(faint_rminusz, faint_gminusr, label="BGS Faint", s=2, c=faint_plot_color)
+# Since this is a scatter plot,
+# cannot handle plotting all targets.
+# Instead, sample a subset of the targets to be plotted.
+sample_number = 10000
+bright_sample_idx = np.random.choice(np.arange(len(bright_rminusz)), sample_number, replace=False)
+faint_sample_idx = np.random.choice(np.arange(len(faint_rminusz)), sample_number, replace=False)
+
+plt.scatter(bright_rminusz[bright_sample_idx], bright_gminusr[bright_sample_idx], label="BGS Bright", s=2, c=bright_plot_color)
+plt.scatter(faint_rminusz[faint_sample_idx], faint_gminusr[faint_sample_idx], label="BGS Faint", s=2, c=faint_plot_color)
 
 plt.xlabel("r - z color")
 plt.ylabel("g - r color")
+plt.xlim([-1.5, 3.5])
+plt.ylim([-1.5, 3.5])
 plt.legend()
 plt.grid()
-plt.savefig("color.pdf")
-plt.show()
+plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/color.pdf")
+#plt.show()
+plt.clf()

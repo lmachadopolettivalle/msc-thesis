@@ -1,3 +1,5 @@
 *.fits
 *.pdf
 *.npy
+*error*
+*output*

@@ -1,6 +1,6 @@
 import numpy as np
 
-from select_imaging_targets import targets
+from select_imaging_targets import targets, REGION
 print("Done selecting targets.")
 print("About to start filtering columns and saving to files.")
 
@@ -20,5 +20,5 @@ data = targets[:][COLUMNS]
 # Save one column per file to use memory more efficiently
 
 for column in COLUMNS:
-    with open(f"/cluster/scratch/lmachado/DataProducts/targets/targets_{column}.npy", "wb") as f:
+    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{REGION}/targets_{column}.npy", "wb") as f:
         np.save(f, data[:][column])
