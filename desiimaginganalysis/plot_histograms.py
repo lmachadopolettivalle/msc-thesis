@@ -6,19 +6,26 @@ from matplotlib import pyplot as plt
 import numpy as np
 from desitarget.targets import bgs_mask
 
+# Parameters for magnitude computation
 CLIP_FLUX = 1e-16
 
 REGION = "north"
 
+BANDS = ["g", "r", "z"]
+
+# Parameters for plotting
+bin_count = 90
+
+LINEWIDTH = 2
+
+# Color choices
 blue = "#004488"
 yellow = "#ddaa33"
 red = "#bb5566"
 
 plt.rcParams['font.size'] = '12'
 bright_plot_color = blue
-faint_plot_color = yellow
-
-bin_count = 75
+faint_plot_color = red
 
 # If True, add magnitudes without extinction correction
 # on top of magnitude histograms
@@ -31,7 +38,7 @@ with open(f"/cluster/scratch/lmachado/DataProducts/targets/{REGION}/targets_BGS_
 
 fluxes = {}
 mw_transmissions = {}
-for band in {"g", "r", "z"}:
+for band in BANDS:
     with open(f"/cluster/scratch/lmachado/DataProducts/targets/{REGION}/targets_FLUX_{band.upper()}.npy", "rb") as f:
         fluxes[band] = np.load(f)
     with open(f"/cluster/scratch/lmachado/DataProducts/targets/{REGION}/targets_MW_TRANSMISSION_{band.upper()}.npy", "rb") as g:
@@ -85,7 +92,7 @@ if compare_extinction_correction:
     faint_mags_not_extinction_corrected = {}
 
 # Plot histograms of magnitudes in 3 bands
-for band in ["g", "r", "z"]:
+for band in BANDS:
     bright_mags[band] = np.array(mag_from_flux(bright_targets, band=band, extinction_correction=True))
     faint_mags[band] = np.array(mag_from_flux(faint_targets, band=band, extinction_correction=True))
 
@@ -96,8 +103,18 @@ faint_mags = remove_spurious_mag_objects(faint_mags)
 print("Number of bright objects:", len(bright_mags["r"]))
 print("Number of faint objects:", len(faint_mags["r"]))
 
+# Determine binning for each color band
+bins = {
+    band: np.linspace(
+        min(bright_mags[band]),
+        max(faint_mags[band]),
+        bin_count,
+    )
+    for band in BANDS
+}
+
 # Plot histograms
-for band in ["g", "r", "z"]:
+for band in BANDS:
     if compare_extinction_correction:
         bright_label = "BGS Bright (E.C.)"
         faint_label = "BGS Faint (E.C.)"
@@ -105,18 +122,18 @@ for band in ["g", "r", "z"]:
         bright_label = "BGS Bright"
         faint_label = "BGS Faint"
 
-    plt.hist(bright_mags[band], bins=bin_count, density=True, histtype="step", label=bright_label, color=bright_plot_color)
-    plt.hist(faint_mags[band], bins=bin_count, density=True, histtype="step", label=faint_label, color=faint_plot_color)
+    plt.hist(bright_mags[band], bins=bins[band], linewidth=LINEWIDTH, density=False, histtype="step", label=bright_label, color=bright_plot_color)
+    plt.hist(faint_mags[band], bins=bins[band], linewidth=LINEWIDTH, density=False, histtype="step", label=faint_label, color=faint_plot_color)
 
     if compare_extinction_correction:
         bright_mags_not_extinction_corrected[band] = np.array(mag_from_flux(bright_targets, band=band, extinction_correction=False))
         faint_mags_not_extinction_corrected[band] = np.array(mag_from_flux(faint_targets, band=band, extinction_correction=False))
 
-        plt.hist(bright_mags_not_extinction_corrected[band], bins=bin_count, density=True, histtype="stepfilled", alpha=0.5, label="BGS Bright (Not E.C.)", color=bright_plot_color)
-        plt.hist(faint_mags_not_extinction_corrected[band], bins=bin_count, density=True, histtype="stepfilled", alpha=0.5, label="BGS Faint (Not E.C.)", color=faint_plot_color)
+        plt.hist(bright_mags_not_extinction_corrected[band], bins=bins[band], linewidth=LINEWIDTH, density=False, histtype="stepfilled", alpha=0.5, label="BGS Bright (Not E.C.)", color=bright_plot_color)
+        plt.hist(faint_mags_not_extinction_corrected[band], bins=bins[band], linewidth=LINEWIDTH, density=False, histtype="stepfilled", alpha=0.5, label="BGS Faint (Not E.C.)", color=faint_plot_color)
 
     plt.xlim([14, 22])
-    plt.ylim([0, 2])
+    #plt.ylim([0, 2])
     if compare_extinction_correction:
         plt.title(f"{band} mag, with and without extinction correction (E.C.)")
         plt.xlabel(f"{band} magnitude")
@@ -125,12 +142,12 @@ for band in ["g", "r", "z"]:
         plt.xlabel(f"{band} magnitude, extinction-corrected")
 
     plt.ylabel("PDF")
-    plt.legend()
+    plt.legend(loc="upper left")
     plt.grid()
     if compare_extinction_correction:
-        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/{band}mag_hist_compare_extinction.pdf")
+        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{band}mag_hist_compare_extinction.pdf")
     else:
-        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/{band}mag_hist.pdf")
+        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{band}mag_hist.pdf")
 
     #plt.show()
     plt.clf()
@@ -143,30 +160,37 @@ bright_rminusz = bright_mags["r"] - bright_mags["z"]
 faint_rminusz = faint_mags["r"] - faint_mags["z"]
 
 # G - R Color Histogram
-plt.hist(bright_gminusr, bins=bin_count, density=True, histtype="step", label="BGS Bright", color=bright_plot_color)
-plt.hist(faint_gminusr, bins=bin_count, density=True, histtype="step", label="BGS Faint", color=faint_plot_color)
+for density in {True, False}:
+    plt.hist(bright_gminusr, bins=bin_count, linewidth=LINEWIDTH, density=density, histtype="step", label="BGS Bright", color=bright_plot_color)
+    plt.hist(faint_gminusr, bins=bin_count, linewidth=LINEWIDTH, density=density, histtype="step", label="BGS Faint", color=faint_plot_color)
 
-plt.xlim([-0.5, 2.5])
-plt.xlabel("g - r color")
-plt.ylabel("PDF")
-plt.legend()
-plt.grid()
-plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/gminusr_hist.pdf")
-#plt.show()
-plt.clf()
+    plt.xlim([-0.5, 2.5])
+    plt.xlabel("g - r color")
+    if density:
+        plt.ylabel("PDF")
+    else:
+        plt.ylabel("Count")
+    plt.legend(loc="upper left")
+    plt.grid()
+    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/gminusr_{'density' if density else 'nodensity'}_hist.pdf")
+    #plt.show()
+    plt.clf()
 
-# R - Z Color Histogram
-plt.hist(bright_rminusz, bins=bin_count, density=True, histtype="step", label="BGS Bright", color=bright_plot_color)
-plt.hist(faint_rminusz, bins=bin_count, density=True, histtype="step", label="BGS Faint", color=faint_plot_color)
+    # R - Z Color Histogram
+    plt.hist(bright_rminusz, bins=bin_count, linewidth=LINEWIDTH, density=density, histtype="step", label="BGS Bright", color=bright_plot_color)
+    plt.hist(faint_rminusz, bins=bin_count, linewidth=LINEWIDTH, density=density, histtype="step", label="BGS Faint", color=faint_plot_color)
 
-plt.xlim([-0.5, 2.5])
-plt.xlabel("r - z color")
-plt.ylabel("PDF")
-plt.legend()
-plt.grid()
-plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/rminusz_hist.pdf")
-#plt.show()
-plt.clf()
+    plt.xlim([-0.5, 2.5])
+    plt.xlabel("r - z color")
+    if density:
+        plt.ylabel("PDF")
+    else:
+        plt.ylabel("Count")
+    plt.legend(loc="upper left")
+    plt.grid()
+    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/rminusz_{'density' if density else 'nodensity'}_hist.pdf")
+    #plt.show()
+    plt.clf()
 
 #####
 # G-R vs. R-Z color plot
@@ -177,15 +201,15 @@ sample_number = 10000
 bright_sample_idx = np.random.choice(np.arange(len(bright_rminusz)), sample_number, replace=False)
 faint_sample_idx = np.random.choice(np.arange(len(faint_rminusz)), sample_number, replace=False)
 
-plt.scatter(bright_rminusz[bright_sample_idx], bright_gminusr[bright_sample_idx], label="BGS Bright", s=2, c=bright_plot_color)
-plt.scatter(faint_rminusz[faint_sample_idx], faint_gminusr[faint_sample_idx], label="BGS Faint", s=2, c=faint_plot_color)
+plt.scatter(bright_rminusz[bright_sample_idx], bright_gminusr[bright_sample_idx], label="BGS Bright", s=4, alpha=0.5, c=bright_plot_color)
+plt.scatter(faint_rminusz[faint_sample_idx], faint_gminusr[faint_sample_idx], label="BGS Faint", s=4, alpha=0.5, c=faint_plot_color)
 
 plt.xlabel("r - z color")
 plt.ylabel("g - r color")
 plt.xlim([-1.5, 3.5])
 plt.ylim([-1.5, 3.5])
-plt.legend()
+plt.legend(loc="upper right")
 plt.grid()
-plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/color.pdf")
+plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/color.pdf")
 #plt.show()
 plt.clf()

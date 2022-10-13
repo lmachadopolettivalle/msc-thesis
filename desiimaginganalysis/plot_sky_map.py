@@ -61,5 +61,5 @@ hp.graticule()
 
 plt.legend(loc="lower right", bbox_to_anchor=(1, -0.16))
 
-plt.savefig("footprint.pdf")
+plt.savefig("/cluster/home/lmachdo/msc-thesis/desiimaginganalysis/images/footprint.pdf")
 plt.show()
