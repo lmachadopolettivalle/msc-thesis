@@ -4,8 +4,9 @@ import numpy as np
 
 # Load footprint and targets
 NSIDE_FILES = 512
-NSIDE = 256
+NSIDE = 64
 
+NPIX_FILES = hp.nside2npix(NSIDE_FILES)
 NPIX = hp.nside2npix(NSIDE)
 
 NORTH_FOOTPRINT_FILE = f"./DataProducts/footprint/pixels_in_north_footprint_for_nside_{NSIDE_FILES}.npy"
@@ -21,9 +22,10 @@ with open(NORTH_TARGET_PIXELS_FILE, "rb") as f:
 with open(SOUTH_FOOTPRINT_FILE, "rb") as f:
     south_footprint_pixels = np.load(f)
 # TODO uncomment south targets
-south_target_pixels = np.array([])
+south_target_pixels = south_footprint_pixels.copy()
 #with open(SOUTH_TARGET_PIXELS_FILE, "rb") as f:
 #    south_target_pixels = np.load(f)
+
 
 # Test converting to smaller nside for gaps in target map
 def nside2nside(nside, nsidenew, pixlist):
@@ -76,8 +78,6 @@ north_footprint_pixels = nside2nside(NSIDE_FILES, NSIDE, north_footprint_pixels)
 north_target_pixels = nside2nside(NSIDE_FILES, NSIDE, north_target_pixels)
 south_footprint_pixels = nside2nside(NSIDE_FILES, NSIDE, south_footprint_pixels)
 south_target_pixels = nside2nside(NSIDE_FILES, NSIDE, south_target_pixels)
-
-
 
 # Obtain pixels in correct region
 
@@ -135,144 +135,79 @@ south_footprint_pixels = np.array(list(
 
 # Sanity check: do north and south footprints, when combined,
 # touch nicely? Or is there an undesired gap between them?
-"""
 m = np.zeros(NPIX)
 m[north_footprint_pixels] = 1
 m[south_footprint_pixels] = 2
-hp.mollview(m, nest=True, rot=[180, 0])
+hp.mollview(m, nest=True, rot=[120, 0])
 hp.graticule()
 plt.show()
-"""
 
 
-# Focusing on North,
-# find a polygon that covers a large enough part of the footprint
+############
+# North mask
+############
+print("NORTH")
 
-# TODO remove this
-def hp_in_dec_range(nside, decmin, decmax, inclusive=True):
-    """HEALPixels in a specified range of Declination.
-
-    Parameters
-    ----------
-    nside : :class:`int`
-        (NESTED) HEALPixel nside.
-    decmin, decmax : :class:`float`
-        Declination range (degrees).
-    inclusive : :class:`bool`, optional, defaults to ``True``
-        see documentation for `healpy.query_strip()`.
-
-    Returns
-    -------
-    :class:`list`
-        (Nested) HEALPixels at `nside` in the specified Dec range.
-
-    Notes
-    -----
-        - Just syntactic sugar around `healpy.query_strip()`.
-        - `healpy.query_strip()` isn't implemented for the NESTED scheme
-          in early healpy versions, so this queries in the RING scheme
-          and then converts to the NESTED scheme.
-    """
-    # ADM convert Dec to co-latitude in radians.
-    # ADM remember that, min/max swap because of the -ve sign.
-    thetamin = np.radians(90.-decmax)
-    thetamax = np.radians(90.-decmin)
-
-    # ADM determine the pixels that touch the box.
-    pixring = hp.query_strip(nside, thetamin, thetamax,
-                             inclusive=inclusive, nest=False)
-    pixnest = hp.ring2nest(nside, pixring)
-
-    return pixnest
-
-# TODO replace with from desitarget.geomask import hp_in_box
-def hp_in_box(nside, radecbox, inclusive=True, fact=4):
-    """Determine which HEALPixels touch an RA, Dec box.
-
-    Parameters
-    ----------
-    nside : :class:`int`
-        (NESTED) HEALPixel nside.
-    radecbox : :class:`list`
-        4-entry list of coordinates [ramin, ramax, decmin, decmax]
-        forming the edges of a box in RA/Dec (degrees).
-    inclusive : :class:`bool`, optional, defaults to ``True``
-        see documentation for `healpy.query_polygon()`.
-    fact : :class:`int`, optional defaults to 4
-        see documentation for `healpy.query_polygon()`.
-
-    Returns
-    -------
-    :class:`list`
-        HEALPixels at the passed `nside` that touch the RA/Dec box.
-
-    Notes
-    -----
-        - Uses `healpy.query_polygon()` to retrieve the RA geodesics
-          and then :func:`hp_in_dec_range()` to limit by Dec.
-        - When the RA range exceeds 180o, `healpy.query_polygon()`
-          defines the range as that with the smallest area (i.e the box
-          can wrap-around in RA). To avoid any ambiguity, this function
-          will only limit by the passed Decs in such cases.
-        - Only strictly correct for Decs from -90+1e-3(o) to 90-1e3(o).
-    """
-    ramin, ramax, decmin, decmax = radecbox
-
-    # ADM area enclosed isn't well-defined if RA covers more than 180o.
-    if np.abs(ramax-ramin) <= 180.:
-        # ADM retrieve RA range. The 1e-3 prevents edge effects near poles.
-        npole, spole = 90-1e-3, -90+1e-3
-        # ADM convert RA/Dec to co-latitude and longitude in radians.
-        rapairs = np.array([ramin, ramin, ramax, ramax])
-        decpairs = np.array([spole, npole, npole, spole])
-        thetapairs, phipairs = np.radians(90.-decpairs), np.radians(rapairs)
-
-        # ADM convert to Cartesian vectors remembering to transpose
-        # ADM to pass the array to query_polygon in the correct order.
-        vecs = hp.dir2vec(thetapairs, phipairs).T
-
-        # ADM determine the pixels that touch the RA range.
-        pixra = hp.query_polygon(nside, vecs,
-                                 inclusive=inclusive, fact=fact, nest=True)
-    else:
-        log.warning('Max RA ({}) and Min RA ({}) separated by > 180o...'
-                    .format(ramax, ramin))
-        log.warning('...will only limit to passed Declinations'
-                    .format(nside))
-        pixra = np.arange(hp.nside2npix(nside))
-
-    # ADM determine the pixels that touch the Dec range.
-    pixdec = hp_in_dec_range(nside, decmin, decmax, inclusive=inclusive)
-
-    # ADM return the pixels in the box.
-    pixnum = list(set(pixra).intersection(set(pixdec)))
-
-    return pixnum
-
-pixels_in_north_mask = hp_in_box(
+# Get all neighbor pixels of all target pixels
+# Note: since phi=None, theta is taken as a list of pixel IDs
+all_neighbor_pixels = hp.pixelfunc.get_all_neighbours(
     NSIDE,
-    radecbox=[105, 280, desitarget_resolve_dec()-2, 80],
-    inclusive=False,
+    theta=north_target_pixels,
+    phi=None,
+    nest=True,
 )
+
+all_neighbor_pixels = all_neighbor_pixels.flatten()
+
+# Remove target pixels from the neighbor list
+right_outside_pixels = np.array(list(
+    set(all_neighbor_pixels).difference(set(north_target_pixels))
+))
+
+# Obtain neighbors of the pixels right outside
+right_outside_neighbors = hp.pixelfunc.get_all_neighbours(
+    NSIDE,
+    theta=right_outside_pixels,
+    phi=None,
+    nest=True,
+)
+
+right_outside_neighbors = right_outside_neighbors.flatten()
+
+# Remove such neighbors from the mask,
+# since they are in the boundary
+pixels_in_north_mask = set(north_target_pixels).difference(set(right_outside_neighbors))
 
 # Take intersection with northern region to remove any boundary pixels
 pixels_in_north_mask = np.array(list(
-    set(pixels_in_north_mask).intersection(set(nest_north_pixels))
+    pixels_in_north_mask.intersection(set(nest_north_pixels))
 ))
+pixels_in_north_mask = np.array(list(pixels_in_north_mask))
+
+# Visualize mask and targets together at NSIDE
+m = np.zeros(NPIX)
+m[north_target_pixels] = 1
+m[pixels_in_north_mask] = 2
+
+hp.mollview(m, nest=True, rot=[120, 0])
+plt.show()
+
 
 # Sanity check:
-# Is the mask totally inside the target footprint?
+# Is the mask totally inside the footprint?
 mask_footprint_intersection = set(pixels_in_north_mask).intersection(set(north_footprint_pixels))
 print("Intersection between mask and footprint:", len(mask_footprint_intersection))
 print("Pixels in mask:", len(set(pixels_in_north_mask)))
 # If the lenghts are not the same, the mask is not entirely contained in the footprint
 assert len(mask_footprint_intersection) == len(set(pixels_in_north_mask))
 
+# Sanity check:
+# Is the mask totally inside the targets area?
 mask_target_intersection = set(pixels_in_north_mask).intersection(set(north_target_pixels))
 print("Intersection between mask and targets:", len(mask_target_intersection))
 print("Pixels in mask:", len(set(pixels_in_north_mask)))
 m = np.zeros(NPIX)
-m[np.array(list(set(pixels_in_north_mask).difference(set(north_target_pixels))))] = 1
+m[np.array(list(set(pixels_in_north_mask).difference(set(north_target_pixels))), dtype=int)] = 1
 hp.mollview(m, nest=True, rot=[120, 0])
 hp.graticule()
 plt.show()
@@ -299,4 +234,108 @@ footprint_loss = (len(set(north_footprint_pixels)) - len(set(pixels_in_north_mas
 target_loss = (len(set(north_target_pixels)) - len(set(pixels_in_north_mask))) / len(set(north_target_pixels))
 
 print("Gray footprint loss:", footprint_loss)
-print("Target area loss", target_loss)
+print("Target area loss:", target_loss)
+
+
+############
+# South mask
+############
+print("SOUTH")
+
+# Get all neighbor pixels of all target pixels
+# Note: since phi=None, theta is taken as a list of pixel IDs
+all_neighbor_pixels = hp.pixelfunc.get_all_neighbours(
+    NSIDE,
+    theta=south_target_pixels,
+    phi=None,
+    nest=True,
+)
+
+all_neighbor_pixels = all_neighbor_pixels.flatten()
+
+# Remove target pixels from the neighbor list
+right_outside_pixels = np.array(list(
+    set(all_neighbor_pixels).difference(set(south_target_pixels))
+))
+
+# Obtain neighbors of the pixels right outside
+right_outside_neighbors = hp.pixelfunc.get_all_neighbours(
+    NSIDE,
+    theta=right_outside_pixels,
+    phi=None,
+    nest=True,
+)
+
+right_outside_neighbors = right_outside_neighbors.flatten()
+
+# Remove such neighbors from the mask,
+# since they are in the boundary
+pixels_in_south_mask = set(south_target_pixels).difference(set(right_outside_neighbors))
+
+# Take intersection with southern region to remove any boundary pixels
+print("HAHAHA")
+print(len(pixels_in_south_mask))
+pixels_in_south_mask = np.array(list(
+    pixels_in_south_mask.intersection(set(nest_south_pixels))
+))
+print(len(pixels_in_south_mask))
+print("HAHAHA")
+
+pixels_in_south_mask = np.array(list(pixels_in_south_mask))
+
+# Visualize mask and targets together at NSIDE
+m = np.zeros(NPIX)
+m[south_target_pixels] = 1
+m[pixels_in_south_mask] = 2
+
+hp.mollview(m, nest=True, rot=[120, 0])
+plt.show()
+
+
+
+# Sanity check:
+# Is the mask totally inside the footprint?
+mask_footprint_intersection = set(pixels_in_south_mask).intersection(set(south_footprint_pixels))
+print("Intersection between mask and footprint:", len(mask_footprint_intersection))
+print("Pixels in mask:", len(set(pixels_in_south_mask)))
+# If the lenghts are not the same, the mask is not entirely contained in the footprint
+assert len(mask_footprint_intersection) == len(set(pixels_in_south_mask))
+
+"""
+# TODO include this code when we have south targets
+# Sanity check:
+# Is the mask totally inside the targets area?
+mask_target_intersection = set(pixels_in_south_mask).intersection(set(south_target_pixels))
+print("Intersection between mask and targets:", len(mask_target_intersection))
+print("Pixels in mask:", len(set(pixels_in_south_mask)))
+m = np.zeros(NPIX)
+m[np.array(list(set(pixels_in_south_mask).difference(set(south_target_pixels))))] = 1
+hp.mollview(m, nest=True, rot=[120, 0])
+hp.graticule()
+plt.show()
+"""
+
+# Sanity check:
+# Are there any holes in the gray footprint?
+footprint_holes = set(pixels_in_south_mask).difference(set(south_footprint_pixels))
+assert len(footprint_holes) == 0
+
+# Sanity check:
+# Are there any holes in the targets pixels?
+target_holes = set(pixels_in_south_mask).difference(set(south_target_pixels))
+print("Holes in target pixels (i.e. number of pixels in mask but not in target):", len(target_holes))
+
+m = np.zeros(NPIX)
+m[pixels_in_south_mask] = 1
+hp.mollview(m, nest=True, rot=[120, 0])
+hp.graticule()
+plt.show()
+
+
+# Compute area percentages
+footprint_loss = (len(set(south_footprint_pixels)) - len(set(pixels_in_south_mask))) / len(set(south_footprint_pixels))
+#target_loss = (len(set(south_target_pixels)) - len(set(pixels_in_south_mask))) / len(set(south_target_pixels))
+
+print("Gray footprint loss:", footprint_loss)
+#print("Target area loss", target_loss)
+
