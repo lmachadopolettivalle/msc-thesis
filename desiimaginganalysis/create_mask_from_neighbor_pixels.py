@@ -2,6 +2,9 @@ import healpy as hp
 from matplotlib import pyplot as plt
 import numpy as np
 
+from desitarget.io import desitarget_resolve_dec
+from desitarget.geomask import nside2nside
+
 # Load footprint and targets
 NSIDE_FILES = 512
 NSIDE = 64
@@ -9,11 +12,11 @@ NSIDE = 64
 NPIX_FILES = hp.nside2npix(NSIDE_FILES)
 NPIX = hp.nside2npix(NSIDE)
 
-NORTH_FOOTPRINT_FILE = f"./DataProducts/footprint/pixels_in_north_footprint_for_nside_{NSIDE_FILES}.npy"
-SOUTH_FOOTPRINT_FILE = f"./DataProducts/footprint/pixels_in_south_footprint_for_nside_{NSIDE_FILES}.npy"
+NORTH_FOOTPRINT_FILE = f"/cluster/scratch/lmachado/DataProducts/footprint/pixels_in_north_footprint_for_nside_{NSIDE_FILES}.npy"
+SOUTH_FOOTPRINT_FILE = f"/cluster/scratch/lmachado/DataProducts/footprint/pixels_in_south_footprint_for_nside_{NSIDE_FILES}.npy"
 
-NORTH_TARGET_PIXELS_FILE = f"./DataProducts/targets/north/targets_HPXPIXEL_HPXNSIDE_{NSIDE_FILES}.npy"
-SOUTH_TARGET_PIXELS_FILE = f"./DataProducts/targets/south/targets_HPXPIXEL_HPXNSIDE_{NSIDE_FILES}.npy"
+NORTH_TARGET_PIXELS_FILE = f"/cluster/scratch/lmachado/DataProducts/targets/north/targets_HPXPIXEL_HPXNSIDE_{NSIDE_FILES}.npy"
+SOUTH_TARGET_PIXELS_FILE = f"/cluster/scratch/lmachado/DataProducts/targets/south/targets_HPXPIXEL_HPXNSIDE_{NSIDE_FILES}.npy"
 
 with open(NORTH_FOOTPRINT_FILE, "rb") as f:
     north_footprint_pixels = np.load(f)
@@ -21,58 +24,13 @@ with open(NORTH_TARGET_PIXELS_FILE, "rb") as f:
     north_target_pixels = np.load(f)
 with open(SOUTH_FOOTPRINT_FILE, "rb") as f:
     south_footprint_pixels = np.load(f)
+
 # TODO uncomment south targets
 south_target_pixels = south_footprint_pixels.copy()
 #with open(SOUTH_TARGET_PIXELS_FILE, "rb") as f:
 #    south_target_pixels = np.load(f)
 
 
-# Test converting to smaller nside for gaps in target map
-def nside2nside(nside, nsidenew, pixlist):
-    """Change a list of HEALPixel numbers to a different NSIDE.
-
-    Parameters
-    ----------
-    nside : :class:`int`
-        The current HEALPixel nside number (NESTED scheme).
-    nsidenew : :class:`int`
-        The new HEALPixel nside number (NESTED scheme).
-    pixlist : :class:`list` or `~numpy.ndarray`
-        The list of HEALPixels to be changed.
-
-    Returns
-    -------
-    :class:`~numpy.ndarray`
-        The altered list of HEALPixels.
-
-    Notes
-    -----
-        - The size of the input list will be altered. For instance,
-          nside=2, pixlist=[0,1] is covered by only pixel [0] at
-          nside=1 but by pixels [0, 1, 2, 3, 4, 5, 6, 7] at nside=4.
-        - Doesn't check that the passed pixels are valid at `nside`.
-    """
-    # ADM sanity check that we're in the nested scheme.
-    #check_nside([nside, nsidenew])
-
-    pixlist = np.atleast_1d(pixlist)
-
-    # ADM remember to use integer division throughout.
-    # ADM if nsidenew is smaller (at a lower resolution), then
-    # ADM downgrade the passed pixel numbers.
-    if nsidenew <= nside:
-        fac = (nside//nsidenew)**2
-        pixlistnew = np.array(list(set(pixlist//fac)))
-    else:
-        # ADM if nsidenew is larger (at a higher resolution), then
-        # ADM upgrade the passed pixel numbers.
-        fac = (nsidenew//nside)**2
-        pixlistnew = []
-        for pix in pixlist:
-            pixlistnew.append(np.arange(pix*fac, pix*fac+fac))
-        pixlistnew = np.hstack(pixlistnew)
-
-    return pixlistnew
 
 north_footprint_pixels = nside2nside(NSIDE_FILES, NSIDE, north_footprint_pixels)
 north_target_pixels = nside2nside(NSIDE_FILES, NSIDE, north_target_pixels)
@@ -80,12 +38,6 @@ south_footprint_pixels = nside2nside(NSIDE_FILES, NSIDE, south_footprint_pixels)
 south_target_pixels = nside2nside(NSIDE_FILES, NSIDE, south_target_pixels)
 
 # Obtain pixels in correct region
-
-# TODO replace with 
-#from desitarget.io import desitarget_resolve_dec
-def desitarget_resolve_dec():
-    return 32.375
-
 # Convert cutoff from degrees to colatitude
 north_south_cutoff = np.pi/2 - np.radians(desitarget_resolve_dec())
 
