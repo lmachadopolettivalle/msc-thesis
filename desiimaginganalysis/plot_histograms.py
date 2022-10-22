@@ -9,7 +9,7 @@ from desitarget.targets import bgs_mask
 # Parameters for magnitude computation
 CLIP_FLUX = 1e-16
 
-REGION = "south"
+REGION = "north"
 
 BANDS = ["g", "r", "z"]
 

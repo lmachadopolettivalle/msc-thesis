@@ -11,7 +11,7 @@ DISPLAY_FOOTPRINTS = {
 }
 DISPLAY_TARGETS = {
     "north": True,
-    "south": False,
+    "south": True,
 }
 
 plt.rcParams['font.size'] = '12'
