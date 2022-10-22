@@ -1,4 +1,3 @@
-from matplotlib import pyplot as plt
 import numpy as np
 
 import Corrfunc
@@ -30,11 +29,11 @@ with open(f"/cluster/scratch/lmachado/DataProducts/randoms/randoms_pixels_NSIDE_
 # TODO remove me
 # Use small number of objects to test code
 targets = {
-    k: v[:10000]
+    k: v[:1000]
     for k, v in targets.items()
 }
 randoms = {
-    k: v[:1000000]
+    k: v[:10000]
     for k, v in randoms.items()
 }
 
@@ -65,26 +64,22 @@ print(targets_count, randoms_count)
 
 # Compute correlation function
 print("Computing 2PCF")
-nbins = 10
-bins = np.linspace(0.1, 10.0, nbins + 1)
+nbins = 15
+bins = np.logspace(np.log10(0.01), np.log10(10.0), nbins + 1)
 nthreads = 1
 
 DD_counts = DDtheta_mocks(1, nthreads, bins, targets["RA"], targets["DEC"])
 RR_counts = DDtheta_mocks(1, nthreads, bins, randoms["RA"], randoms["DEC"])
 DR_counts = DDtheta_mocks(0, nthreads, bins, targets["RA"], targets["DEC"], RA2=randoms["RA"], DEC2=randoms["DEC"])
 
-wtheta = convert_3d_counts_to_cf(targets_count, targets_count, randoms_count, randoms_count,
-DD_counts, DR_counts,
-DR_counts, RR_counts)
-
-print(wtheta)
-
-plt.xscale("log")
-plt.yscale("log")
-plt.xlabel(r"$\theta$")
-plt.ylabel(r"w($\theta$)")
-plt.scatter(
-    bins[:-1],
-    wtheta
+wtheta = convert_3d_counts_to_cf(
+    targets_count, targets_count,
+    randoms_count, randoms_count,
+    DD_counts, DR_counts,
+    DR_counts, RR_counts
 )
-plt.savefig("test2PCF.pdf")
+
+with open(f"/cluster/scratch/lmachado/DataProducts/2PCF/{REGION}_2PCF_bins.npy", "wb") as f:
+    np.save(f, bins[:-1])
+with open(f"/cluster/scratch/lmachado/DataProducts/2PCF/{REGION}_2PCF_wtheta.npy", "wb") as f:
+    np.save(f, wtheta)
