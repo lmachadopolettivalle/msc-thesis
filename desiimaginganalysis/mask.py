@@ -74,12 +74,16 @@ if __name__ == "__main__":
     with open(SOUTH_TARGET_PIXELS_FILE, "rb") as f:
         south_target_pixels = np.load(f)
 
-
+    full_footprint_pixels = np.concatenate((north_footprint_pixels, south_footprint_pixels))
+    full_target_pixels = np.concatenate((north_target_pixels, south_target_pixels))
 
     north_footprint_pixels = nside2nside(NSIDE_FILES, NSIDE, north_footprint_pixels)
     north_target_pixels = nside2nside(NSIDE_FILES, NSIDE, north_target_pixels)
     south_footprint_pixels = nside2nside(NSIDE_FILES, NSIDE, south_footprint_pixels)
     south_target_pixels = nside2nside(NSIDE_FILES, NSIDE, south_target_pixels)
+
+    full_footprint_pixels = nside2nside(NSIDE_FILES, NSIDE, full_footprint_pixels)
+    full_target_pixels = nside2nside(NSIDE_FILES, NSIDE, full_target_pixels)
 
     # Obtain pixels in correct region
     # Convert cutoff from degrees to colatitude
@@ -139,16 +143,14 @@ if __name__ == "__main__":
     plt.show()
 
 
-    ############
-    # North mask
-    ############
-    print("NORTH")
-
+    ###############
+    # Combined mask
+    ###############
     # Get all neighbor pixels of all target pixels
     # Note: since phi=None, theta is taken as a list of pixel IDs
     all_neighbor_pixels = hp.pixelfunc.get_all_neighbours(
         NSIDE,
-        theta=north_target_pixels,
+        theta=full_target_pixels,
         phi=None,
         nest=True,
     )
@@ -157,7 +159,7 @@ if __name__ == "__main__":
 
     # Remove target pixels from the neighbor list
     right_outside_pixels = np.array(list(
-        set(all_neighbor_pixels).difference(set(north_target_pixels))
+        set(all_neighbor_pixels).difference(set(full_target_pixels))
     ))
 
     # Obtain neighbors of the pixels right outside
@@ -172,148 +174,69 @@ if __name__ == "__main__":
 
     # Remove such neighbors from the mask,
     # since they are in the boundary
-    pixels_in_north_mask = set(north_target_pixels).difference(set(right_outside_neighbors))
+    pixels_in_mask = set(full_target_pixels).difference(set(right_outside_neighbors))
 
-    # Take intersection with northern region to remove any boundary pixels
-    pixels_in_north_mask = np.array(list(
-        pixels_in_north_mask.intersection(set(nest_north_pixels))
-    ))
-    pixels_in_north_mask = np.array(list(pixels_in_north_mask))
+    pixels_in_mask = np.array(list(pixels_in_mask))
 
     # Visualize mask and targets together at NSIDE
     m = np.zeros(NPIX)
-    m[north_target_pixels] = 1
-    m[pixels_in_north_mask] = 2
+    m[full_target_pixels] = 1
+    m[pixels_in_mask] = 2
 
-    hp.mollview(m, nest=True, rot=[120, 0], title="North mask and footprint overlayed")
+    hp.mollview(m, nest=True, rot=[120, 0], title="Full mask and footprint overlayed")
     plt.show()
-
 
     # Sanity check:
     # Is the mask totally inside the footprint?
-    mask_footprint_intersection = set(pixels_in_north_mask).intersection(set(north_footprint_pixels))
+    mask_footprint_intersection = set(pixels_in_mask).intersection(set(full_footprint_pixels))
     # If the lenghts are not the same, the mask is not entirely contained in the footprint
-    assert len(mask_footprint_intersection) == len(set(pixels_in_north_mask))
+    assert len(mask_footprint_intersection) == len(set(pixels_in_mask))
 
     # Sanity check:
     # Is the mask totally inside the targets area?
-    mask_target_intersection = set(pixels_in_north_mask).intersection(set(north_target_pixels))
+    mask_target_intersection = set(pixels_in_mask).intersection(set(full_target_pixels))
     # If the lenghts are not the same, the mask is not entirely contained in the target area
-    assert len(mask_target_intersection) == len(set(pixels_in_north_mask))
+    assert len(mask_target_intersection) == len(set(pixels_in_mask))
 
     # Sanity check:
     # Are there any holes in the gray footprint?
-    footprint_holes = set(pixels_in_north_mask).difference(set(north_footprint_pixels))
+    footprint_holes = set(pixels_in_mask).difference(set(full_footprint_pixels))
     assert len(footprint_holes) == 0
 
     # Sanity check:
     # Are there any holes in the targets pixels?
-    target_holes = set(pixels_in_north_mask).difference(set(north_target_pixels))
+    target_holes = set(pixels_in_mask).difference(set(full_target_pixels))
     assert len(target_holes) == 0
 
     m = np.zeros(NPIX)
-    m[pixels_in_north_mask] = 1
-    hp.mollview(m, nest=True, rot=[120, 0], title="North mask")
+    m[pixels_in_mask] = 1
+    hp.mollview(m, nest=True, rot=[120, 0], title="Mask")
     hp.graticule()
     plt.show()
 
-
     # Compute area percentages
-    footprint_loss = (len(set(north_footprint_pixels)) - len(set(pixels_in_north_mask))) / len(set(north_footprint_pixels))
-    target_loss = (len(set(north_target_pixels)) - len(set(pixels_in_north_mask))) / len(set(north_target_pixels))
+    footprint_loss = (len(set(full_footprint_pixels)) - len(set(pixels_in_mask))) / len(set(full_footprint_pixels))
+    target_loss = (len(set(full_target_pixels)) - len(set(pixels_in_mask))) / len(set(full_target_pixels))
 
     print("Gray footprint loss:", footprint_loss)
     print("Target area loss:", target_loss)
 
-
-    ############
-    # South mask
-    ############
-    print("SOUTH")
-
-    # Get all neighbor pixels of all target pixels
-    # Note: since phi=None, theta is taken as a list of pixel IDs
-    all_neighbor_pixels = hp.pixelfunc.get_all_neighbours(
-        NSIDE,
-        theta=south_target_pixels,
-        phi=None,
-        nest=True,
-    )
-
-    all_neighbor_pixels = all_neighbor_pixels.flatten()
-
-    # Remove target pixels from the neighbor list
-    right_outside_pixels = np.array(list(
-        set(all_neighbor_pixels).difference(set(south_target_pixels))
+    # Obtain northern and southern masks by taking intersection with each region
+    pixels_in_north_mask = np.array(list(
+        set(pixels_in_mask).intersection(set(nest_north_pixels))
     ))
-
-    # Obtain neighbors of the pixels right outside
-    right_outside_neighbors = hp.pixelfunc.get_all_neighbours(
-        NSIDE,
-        theta=right_outside_pixels,
-        phi=None,
-        nest=True,
-    )
-
-    right_outside_neighbors = right_outside_neighbors.flatten()
-
-    # Remove such neighbors from the mask,
-    # since they are in the boundary
-    pixels_in_south_mask = set(south_target_pixels).difference(set(right_outside_neighbors))
-
-    # Take intersection with southern region to remove any boundary pixels
     pixels_in_south_mask = np.array(list(
-        pixels_in_south_mask.intersection(set(nest_south_pixels))
+        set(pixels_in_mask).intersection(set(nest_south_pixels))
     ))
 
-    pixels_in_south_mask = np.array(list(pixels_in_south_mask))
-
-    # Visualize mask and targets together at NSIDE
-    m = np.zeros(NPIX)
-    m[south_target_pixels] = 1
+    # Sanity check: when plotting both masks together,
+    # do they touch nicely at the border?
+    m = np.zeros(NPIX, dtype=int)
+    m[pixels_in_north_mask] = 1
     m[pixels_in_south_mask] = 2
-
-    hp.mollview(m, nest=True, rot=[120, 0], title="North mask and footprint overlayed")
-    plt.show()
-
-
-
-    # Sanity check:
-    # Is the mask totally inside the footprint?
-    mask_footprint_intersection = set(pixels_in_south_mask).intersection(set(south_footprint_pixels))
-    # If the lenghts are not the same, the mask is not entirely contained in the footprint
-    assert len(mask_footprint_intersection) == len(set(pixels_in_south_mask))
-
-    # Sanity check:
-    # Is the mask totally inside the targets area?
-    mask_target_intersection = set(pixels_in_south_mask).intersection(set(south_target_pixels))
-    # If the lenghts are not the same, the mask is not entirely contained in the target area
-    assert len(mask_target_intersection) == len(set(pixels_in_south_mask))
-
-    # Sanity check:
-    # Are there any holes in the gray footprint?
-    footprint_holes = set(pixels_in_south_mask).difference(set(south_footprint_pixels))
-    assert len(footprint_holes) == 0
-
-    # Sanity check:
-    # Are there any holes in the targets pixels?
-    target_holes = set(pixels_in_south_mask).difference(set(south_target_pixels))
-    assert len(target_holes) == 0
-
-    m = np.zeros(NPIX)
-    m[pixels_in_south_mask] = 1
-    hp.mollview(m, nest=True, rot=[120, 0], title="South mask")
+    hp.mollview(m, nest=True, rot=[120, 0], title="North and South masks together")
     hp.graticule()
     plt.show()
-
-
-    # Compute area percentages
-    footprint_loss = (len(set(south_footprint_pixels)) - len(set(pixels_in_south_mask))) / len(set(south_footprint_pixels))
-    target_loss = (len(set(south_target_pixels)) - len(set(pixels_in_south_mask))) / len(set(south_target_pixels))
-
-    print("Gray footprint loss:", footprint_loss)
-    print("Target area loss", target_loss)
-
 
     # Finally, save the resulting masks as bit arrays
     m = np.zeros(NPIX, dtype=int)
