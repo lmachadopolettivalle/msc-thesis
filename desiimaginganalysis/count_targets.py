@@ -24,3 +24,5 @@ for filepath in tqdm(FILES):
 
         for k in TYPE_COUNTS.keys():
             TYPE_COUNTS[k] += np.sum(data["TYPE"] == k)
+
+print(TYPE_COUNTS)

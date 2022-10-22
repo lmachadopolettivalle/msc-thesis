@@ -9,7 +9,7 @@ from desitarget.targets import bgs_mask
 # Parameters for magnitude computation
 CLIP_FLUX = 1e-16
 
-REGION = "north"
+REGION = "south"
 
 BANDS = ["g", "r", "z"]
 
@@ -145,9 +145,9 @@ for band in BANDS:
     plt.legend(loc="upper left")
     plt.grid()
     if compare_extinction_correction:
-        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{band}mag_hist_compare_extinction.pdf")
+        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_{band}mag_hist_compare_extinction.pdf")
     else:
-        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{band}mag_hist.pdf")
+        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_{band}mag_hist.pdf")
 
     #plt.show()
     plt.clf()
@@ -172,7 +172,7 @@ for density in {True, False}:
         plt.ylabel("Count")
     plt.legend(loc="upper left")
     plt.grid()
-    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/gminusr_{'density' if density else 'nodensity'}_hist.pdf")
+    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_gminusr_{'density' if density else 'nodensity'}_hist.pdf")
     #plt.show()
     plt.clf()
 
@@ -188,7 +188,7 @@ for density in {True, False}:
         plt.ylabel("Count")
     plt.legend(loc="upper left")
     plt.grid()
-    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/rminusz_{'density' if density else 'nodensity'}_hist.pdf")
+    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_rminusz_{'density' if density else 'nodensity'}_hist.pdf")
     #plt.show()
     plt.clf()
 
@@ -210,6 +210,6 @@ plt.xlim([-1.5, 3.5])
 plt.ylim([-1.5, 3.5])
 plt.legend(loc="upper right")
 plt.grid()
-plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/color.pdf")
+plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_color.pdf")
 #plt.show()
 plt.clf()

@@ -3,7 +3,7 @@ from desitarget.targets import desi_mask, bgs_mask
 import os
 import time
 
-REGION = "north"
+REGION = "south"
 
 PATH_TO_SWEEP_FILES = f"/cluster/scratch/lmachado/DESIImaging/dr9/{REGION}/sweeps/"
 

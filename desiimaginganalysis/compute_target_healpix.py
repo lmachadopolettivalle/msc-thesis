@@ -1,7 +1,7 @@
 import healpy as hp
 import numpy as np
 
-REGION = "north"
+REGION = "south"
 
 NSIDE = 512
 
