@@ -1,5 +1,6 @@
 import healpy as hp
 from matplotlib import pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
 
 from desitarget.io import desitarget_resolve_dec
@@ -179,11 +180,36 @@ if __name__ == "__main__":
     pixels_in_mask = np.array(list(pixels_in_mask))
 
     # Visualize mask and targets together at NSIDE
+    # Make custom cmap,
+    # with white as the first color
+    # so the background values are zero
+    cmap = LinearSegmentedColormap.from_list(
+        "",
+        ["white", "blue", "gray"]
+    )
+
     m = np.zeros(NPIX)
     m[full_target_pixels] = 1
     m[pixels_in_mask] = 2
 
-    hp.mollview(m, nest=True, rot=[120, 0], title="Full mask and footprint overlayed")
+    hp.mollview(m, nest=True, rot=[120, 0], title="Mask and target area", cbar=False, cmap=cmap)
+
+    # Display lines for Dec=+32 and Dec=-18
+    # When using projscatter, with lonlat=True,
+    # first input RA (from 0 to 360), then Dec (from -90 to +90)
+    ras = np.linspace(0, 360, 700)
+    north_south_split_radians = 32
+    desi_southmost_radians = -15
+
+    hp.projscatter(ras, [north_south_split_radians]*len(ras), lonlat=True, c="black", s=2, label="N/S Split in LS")
+    hp.projscatter(ras, [desi_southmost_radians]*len(ras), lonlat=True, c="red", s=2, label="DESI Southmost")
+
+    hp.graticule()
+    plt.legend(
+        loc="lower right",
+        bbox_to_anchor=(1.02, -0.08)
+    )
+    plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/mask.pdf")
     plt.show()
 
     # Sanity check:
@@ -210,7 +236,7 @@ if __name__ == "__main__":
 
     m = np.zeros(NPIX)
     m[pixels_in_mask] = 1
-    hp.mollview(m, nest=True, rot=[120, 0], title="Mask")
+    hp.mollview(m, nest=True, rot=[120, 0], title="Mask", cbar=False, cmap=cmap)
     hp.graticule()
     plt.show()
 
@@ -234,7 +260,7 @@ if __name__ == "__main__":
     m = np.zeros(NPIX, dtype=int)
     m[pixels_in_north_mask] = 1
     m[pixels_in_south_mask] = 2
-    hp.mollview(m, nest=True, rot=[120, 0], title="North and South masks together")
+    hp.mollview(m, nest=True, rot=[120, 0], title="North and South masks together", cmap=cmap, cbar=False)
     hp.graticule()
     plt.show()
 

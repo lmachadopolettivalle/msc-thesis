@@ -6,8 +6,8 @@ from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
 
 DISPLAY_FOOTPRINTS = {
-    "north": True,
-    "south": True,
+    "north": False,
+    "south": False,
 }
 DISPLAY_TARGETS = {
     "north": True,
@@ -117,5 +117,5 @@ plt.legend(
     bbox_to_anchor=(1.02, -0.08)
 )
 
-plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/footprint.pdf")
+plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/targets_and_footprint.pdf")
 plt.show()
