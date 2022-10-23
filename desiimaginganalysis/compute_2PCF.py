@@ -29,11 +29,11 @@ with open(f"/cluster/scratch/lmachado/DataProducts/randoms/randoms_pixels_NSIDE_
 # TODO remove me
 # Use small number of objects to test code
 targets = {
-    k: v[:1000]
+    k: v[:3000000]
     for k, v in targets.items()
 }
 randoms = {
-    k: v[:10000]
+    k: v[:1000000]
     for k, v in randoms.items()
 }
 
@@ -56,35 +56,39 @@ randoms = {
     for k, v in randoms.items()
 }
 
+print("Total target count:", len(targets["RA"]))
+print("Total random count:", len(randoms["RA"]))
+
 
 # Compute 2PCF for each group of targets
 bgs_category_target_ids = {
-    "bright": np.where(targets["BGS_TARGET"] == BGS_BRIGHT)[0],
-    "faint": np.where(targets["BGS_TARGET"] == BGS_FAINT)[0],
+    "Bright": np.where(targets["BGS_TARGET"] == BGS_BRIGHT)[0],
+    "Faint": np.where(targets["BGS_TARGET"] == BGS_FAINT)[0],
 }
 
 rmag_bins = {
-    "bright": [
-        [14, 16],
-        [16, 18],
-        [18, 20],
+    "Bright": [
+        [15, 16],
+        [16, 17],
+        [17, 18],
+        [18, 19],
+        [19, 19.5],
     ],
-    "faint": [
+    "Faint": [
         [19.5, 20],
-        [20, 20.5],
+        [20, 21],
     ],
 }
 
 # Compute correlation function
 print("Computing 2PCF")
-nbins = 15
-bins = np.logspace(np.log10(0.01), np.log10(10.0), nbins + 1)
-nthreads = 1
+nbins = 25
+bins = np.logspace(np.log10(1e-3), np.log10(10), nbins + 1)
+nthreads = 2
 
 # Pre-compute randoms-related data
 RR_counts = DDtheta_mocks(1, nthreads, bins, randoms["RA"], randoms["DEC"])
 randoms_count = len(randoms["RA"])
-print("Randoms count:", randoms_count)
 
 for bgs_category_name, ids in bgs_category_target_ids.items():
     print(bgs_category_name)
@@ -94,6 +98,7 @@ for bgs_category_name, ids in bgs_category_target_ids.items():
     }
 
     for rmag_low, rmag_high in rmag_bins[bgs_category_name]:
+        print(rmag_low, rmag_high)
         rmag_ids = np.where(
             (rmag_low <= bgs_category_filtered_targets["MAG_R"]) &
             (bgs_category_filtered_targets["MAG_R"] < rmag_high)

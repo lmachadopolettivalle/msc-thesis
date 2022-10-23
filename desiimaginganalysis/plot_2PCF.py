@@ -4,17 +4,21 @@ import os
 
 REGION = "north"
 
+# Parameters for plotting
+plt.rcParams['font.size'] = '12'
+LINEWIDTH = 2
+
 # Obtain list of 2PCF files available
 PATH_TO_2PCF_FILES = "/cluster/scratch/lmachado/DataProducts/2PCF/"
 
-FILENAMES = os.listdir(PATH_TO_2PCF_FILES)
+FILENAMES = sorted(os.listdir(PATH_TO_2PCF_FILES))
 
 # Focus on desired region, on _bins_ files, and on bright vs. faint
 FILENAMES = [f for f in FILENAMES if f.startswith(REGION) and "_bins_" in f]
 
 TYPE_FILENAMES = {
-    "bright": [f for f in FILENAMES if "bright" in f],
-    "faint": [f for f in FILENAMES if "faint" in f],
+    "Bright": [f for f in FILENAMES if "Bright" in f],
+    "Faint": [f for f in FILENAMES if "Faint" in f],
 }
 
 def get_rmag_range_from_filename(filename):
@@ -35,11 +39,17 @@ for type_targets, filelist in TYPE_FILENAMES.items():
         with open(f"{PATH_TO_2PCF_FILES}/north_2PCF_wtheta_{type_targets}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}.npy", "rb") as f:
             wtheta = np.load(f)
 
-        plt.plot(bins, wtheta, label=f"{rmag_low} - {rmag_high}")
+        plt.plot(bins, wtheta, linewidth=LINEWIDTH, label=f"{rmag_low} < r < {rmag_high}")
 
     plt.xscale("log")
     plt.yscale("log")
-    plt.title(type_targets)
-    plt.legend()
+    plt.xlabel(r"$\theta$ [deg]")
+    plt.ylabel(r"$w(\theta)$")
+    plt.title(f"BGS {type_targets} Targets - {REGION}")
+    plt.legend(loc="upper right")
+
+    plt.grid()
+
+    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}.pdf")
 
     plt.show()
