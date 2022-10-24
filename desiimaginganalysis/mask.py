@@ -4,7 +4,7 @@ from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
 
 from desitarget.io import desitarget_resolve_dec
-from desitarget.geomask import nside2nside
+from desitarget.geomask import hp_in_box, nside2nside
 
 def mask(pixel_ids, nside, region="both"):
     # Given an array of pixel IDs at some NSIDE (in NESTED ordering),
@@ -177,9 +177,24 @@ if __name__ == "__main__":
     # since they are in the boundary
     pixels_in_mask = set(full_target_pixels).difference(set(right_outside_neighbors))
 
+    # Remove small, disjoint patches from mask to make it simpler
+    # Regions to be removed: chosen by eye based on initial version of mask
+    pixels_to_be_removed = set()
+    for radecbox in [
+        [210, 240, -30, -10],
+        [120, 180, -40, -10.2],
+    ]:
+        pixels_to_be_removed.update(list(hp_in_box(
+            NSIDE,
+            radecbox,
+            inclusive=False,
+        )))
+
+    pixels_in_mask = pixels_in_mask.difference(pixels_to_be_removed)
+
+    # Convert to np.array for visualization
     pixels_in_mask = np.array(list(pixels_in_mask))
 
-    # TODO remove small patches from mask to make it simpler
 
     # Visualize mask and targets together at NSIDE
     # Make custom cmap,
