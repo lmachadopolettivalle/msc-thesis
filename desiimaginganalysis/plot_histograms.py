@@ -7,8 +7,6 @@ import numpy as np
 
 from load_processed_target_data import load_processed_target_data, BANDS, BGS_BRIGHT, BGS_FAINT
 
-REGION = "north"
-
 # If True, use magnitudes with extinction correction
 # If False, show magnitudes without extinction correction
 extinction_correction = True
@@ -17,6 +15,8 @@ extinction_correction = True
 bin_count = 90
 
 LINEWIDTH = 2
+
+ALPHA = 0.5
 
 # Color choices
 blue = "#004488"
@@ -27,29 +27,61 @@ plt.rcParams['font.size'] = '12'
 bright_plot_color = blue
 faint_plot_color = red
 
-# Load targets
-targets = load_processed_target_data(region=REGION, extinction_correction=extinction_correction)
+HISTTYPE = {
+    "north": "step",
+    "south": "stepfilled",
+}
 
-bright_targets = np.where(targets["BGS_TARGET"] == BGS_BRIGHT)[0]
-faint_targets = np.where(targets["BGS_TARGET"] == BGS_FAINT)[0]
+# Number of pixels in each region,
+# to help normalize histograms
+NUMBER_PIXELS_BEFORE_MASKING = {
+    "north": 6281,
+    "south": 18401,
+}
+NUMBER_PIXELS_AFTER_MASKING = {
+    "north": 6171,
+    "south": 17059,
+}
+
+# Load targets
+targets = {
+    "north": load_processed_target_data(region="north", extinction_correction=extinction_correction, apply_mask=True),
+    "south": load_processed_target_data(region="south", extinction_correction=extinction_correction, apply_mask=True),
+}
+
+bright_targets = {
+    region: np.where(values["BGS_TARGET"] == BGS_BRIGHT)[0]
+    for region, values in targets.items()
+}
+faint_targets = {
+    region: np.where(values["BGS_TARGET"] == BGS_FAINT)[0]
+    for region, values in targets.items()
+}
 
 # Plot histograms of magnitudes in 3 bands
-
-print("Number of bright objects:", len(targets["MAG_R"][bright_targets]))
-print("Number of faint objects:", len(targets["MAG_R"][faint_targets]))
+print("Number of north bright objects:", len(targets["north"]["MAG_R"][bright_targets["north"]]))
+print("Number of north faint objects:", len(targets["north"]["MAG_R"][faint_targets["north"]]))
+print("Number of south bright objects:", len(targets["south"]["MAG_R"][bright_targets["south"]]))
+print("Number of south faint objects:", len(targets["south"]["MAG_R"][faint_targets["south"]]))
 
 # Determine binning for each color band
 bins = {
-    band: np.linspace(
-        min(targets[f"MAG_{band.upper()}"][bright_targets]),
-        max(targets[f"MAG_{band.upper()}"][faint_targets]),
-        bin_count,
-    )
-    for band in BANDS
+    region: {
+        band: np.linspace(
+            min(values[f"MAG_{band.upper()}"][bright_targets[region]]),
+            max(values[f"MAG_{band.upper()}"][faint_targets[region]]),
+            bin_count,
+        )
+        for band in BANDS
+    }
+    for region, values in targets.items()
 }
+
+print("Plotting magnitude histograms")
 
 # Plot histograms
 for band in BANDS:
+    print(band)
     if extinction_correction:
         bright_label = "BGS Bright"
         faint_label = "BGS Faint"
@@ -57,17 +89,28 @@ for band in BANDS:
         bright_label = "BGS Bright (E.C.)"
         faint_label = "BGS Faint (E.C.)"
 
-    plt.hist(
-        targets[f"MAG_{band.upper()}"][bright_targets],
-        bins=bins[band], linewidth=LINEWIDTH, density=False, histtype="step", label=bright_label, color=bright_plot_color
-    )
-    plt.hist(
-        targets[f"MAG_{band.upper()}"][faint_targets],
-        bins=bins[band], linewidth=LINEWIDTH, density=False, histtype="step", label=faint_label, color=faint_plot_color
-    )
+    for region, values in targets.items():
+        bright_values = values[f"MAG_{band.upper()}"][bright_targets[region]]
+        bright_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(bright_values)
+
+        faint_values = values[f"MAG_{band.upper()}"][faint_targets[region]]
+        faint_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(faint_values)
+
+        plt.hist(
+            bright_values,
+            weights=bright_weights,
+            alpha=ALPHA,
+            bins=bins[region][band], linewidth=LINEWIDTH, density=False, histtype=HISTTYPE[region], label=f"{bright_label}, {region}", color=bright_plot_color
+        )
+        plt.hist(
+            faint_values,
+            weights=faint_weights,
+            alpha=ALPHA,
+            bins=bins[region][band], linewidth=LINEWIDTH, density=False, histtype=HISTTYPE[region], label=f"{faint_label}, {region}", color=faint_plot_color
+        )
 
     plt.xlim([14, 22])
-    #plt.ylim([0, 2])
+
     if extinction_correction:
         plt.title(f"{band} mag distribution")
         plt.xlabel(f"{band} magnitude, extinction-corrected")
@@ -75,30 +118,60 @@ for band in BANDS:
         plt.title(f"{band} mag, with and without extinction correction (E.C.)")
         plt.xlabel(f"{band} magnitude")
 
-    plt.ylabel("Count")
+    plt.ylabel("Count, normalized by survey area")
     plt.legend(loc="upper left")
     plt.grid()
     if extinction_correction:
-        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_{band}mag_hist.pdf")
+        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{band}mag_hist.pdf")
     else:
-        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_{band}mag_hist_no_extinction.pdf")
+        plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{band}mag_hist_no_extinction.pdf")
 
     #plt.show()
     plt.clf()
 
 # Plot histograms of colors
-bright_gminusr = targets["MAG_G"][bright_targets] - targets["MAG_R"][bright_targets]
-faint_gminusr = targets["MAG_G"][faint_targets] - targets["MAG_R"][faint_targets]
+bright_gminusr = {
+    region: values["MAG_G"][bright_targets[region]] - values["MAG_R"][bright_targets[region]]
+    for region, values in targets.items()
+}
+faint_gminusr = {
+    region: values["MAG_G"][faint_targets[region]] - values["MAG_R"][faint_targets[region]]
+    for region, values in targets.items()
+}
 
-bright_rminusz = targets["MAG_R"][bright_targets] - targets["MAG_Z"][bright_targets]
-faint_rminusz = targets["MAG_R"][faint_targets] - targets["MAG_Z"][faint_targets]
+bright_rminusz = {
+    region: values["MAG_R"][bright_targets[region]] - values["MAG_Z"][bright_targets[region]]
+    for region, values in targets.items()
+}
+faint_rminusz = {
+    region: values["MAG_R"][faint_targets[region]] - values["MAG_Z"][faint_targets[region]]
+    for region, values in targets.items()
+}
 
-# G - R Color Histogram
+### Color histograms
 for density in {True, False}:
-    plt.hist(bright_gminusr, bins=bin_count, linewidth=LINEWIDTH, density=density, histtype="step", label="BGS Bright", color=bright_plot_color)
-    plt.hist(faint_gminusr, bins=bin_count, linewidth=LINEWIDTH, density=density, histtype="step", label="BGS Faint", color=faint_plot_color)
+    # G - R Color Histogram
+    print("Plotting G - R color histogram")
+    for region in bright_gminusr.keys():
+        bright_values = bright_gminusr[region]
+        bright_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(bright_values)
+        faint_values = faint_gminusr[region]
+        faint_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(faint_values)
 
-    plt.xlim([-0.5, 2.5])
+        plt.hist(
+            bright_values,
+            weights=bright_weights,
+            alpha=ALPHA,
+            bins=bin_count, linewidth=LINEWIDTH, density=density, histtype=HISTTYPE[region], label=f"BGS Bright, {region}", color=bright_plot_color
+        )
+        plt.hist(
+            faint_values,
+            weights=faint_weights,
+            alpha=ALPHA,
+            bins=bin_count, linewidth=LINEWIDTH, density=density, histtype=HISTTYPE[region], label=f"BGS Faint, {region}", color=faint_plot_color
+        )
+
+    #plt.xlim([-0.5, 2.5])
     plt.xlabel("g - r color")
     if density:
         plt.ylabel("PDF")
@@ -106,15 +179,32 @@ for density in {True, False}:
         plt.ylabel("Count")
     plt.legend(loc="upper left")
     plt.grid()
-    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_gminusr_{'density' if density else 'nodensity'}_hist.pdf")
+    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/gminusr_{'density' if density else 'nodensity'}_hist.pdf")
     #plt.show()
     plt.clf()
 
     # R - Z Color Histogram
-    plt.hist(bright_rminusz, bins=bin_count, linewidth=LINEWIDTH, density=density, histtype="step", label="BGS Bright", color=bright_plot_color)
-    plt.hist(faint_rminusz, bins=bin_count, linewidth=LINEWIDTH, density=density, histtype="step", label="BGS Faint", color=faint_plot_color)
+    print("Plotting R - Z color histogram")
+    for region in bright_rminusz.keys():
+        bright_values = bright_rminusz[region]
+        bright_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(bright_values)
+        faint_values = faint_rminusz[region]
+        faint_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(faint_values)
 
-    plt.xlim([-0.5, 2.5])
+        plt.hist(
+            bright_values,
+            weights=bright_weights,
+            alpha=ALPHA,
+            bins=bin_count, linewidth=LINEWIDTH, density=density, histtype=HISTTYPE[region], label=f"BGS Bright, {region}", color=bright_plot_color
+        )
+        plt.hist(
+            faint_values,
+            weights=faint_weights,
+            alpha=ALPHA,
+            bins=bin_count, linewidth=LINEWIDTH, density=density, histtype=HISTTYPE[region], label=f"BGS Faint, {region}", color=faint_plot_color
+        )
+
+    #plt.xlim([-0.5, 2.5])
     plt.xlabel("r - z color")
     if density:
         plt.ylabel("PDF")
@@ -122,21 +212,23 @@ for density in {True, False}:
         plt.ylabel("Count")
     plt.legend(loc="upper left")
     plt.grid()
-    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_rminusz_{'density' if density else 'nodensity'}_hist.pdf")
+    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/rminusz_{'density' if density else 'nodensity'}_hist.pdf")
     #plt.show()
     plt.clf()
 
 #####
+print("Plotting color scatter plot")
 # G-R vs. R-Z color plot
 # Since this is a scatter plot,
 # cannot handle plotting all targets.
 # Instead, sample a subset of the targets to be plotted.
 sample_number = 10000
-bright_sample_idx = np.random.choice(np.arange(len(bright_rminusz)), sample_number, replace=False)
-faint_sample_idx = np.random.choice(np.arange(len(faint_rminusz)), sample_number, replace=False)
+for region in bright_rminusz.keys():
+    bright_sample_idx = np.random.choice(np.arange(len(bright_rminusz[region])), sample_number, replace=False)
+    faint_sample_idx = np.random.choice(np.arange(len(faint_rminusz[region])), sample_number, replace=False)
 
-plt.scatter(bright_rminusz[bright_sample_idx], bright_gminusr[bright_sample_idx], label="BGS Bright", s=4, alpha=0.5, c=bright_plot_color)
-plt.scatter(faint_rminusz[faint_sample_idx], faint_gminusr[faint_sample_idx], label="BGS Faint", s=4, alpha=0.5, c=faint_plot_color)
+    plt.scatter(bright_rminusz[region][bright_sample_idx], bright_gminusr[region][bright_sample_idx], label=f"BGS Bright, {region}", s=4, alpha=0.5, c=bright_plot_color)
+    plt.scatter(faint_rminusz[region][faint_sample_idx], faint_gminusr[region][faint_sample_idx], label=f"BGS Faint, {region}", s=4, alpha=0.5, c=faint_plot_color)
 
 plt.xlabel("r - z color")
 plt.ylabel("g - r color")
@@ -144,6 +236,6 @@ plt.xlim([-1.5, 3.5])
 plt.ylim([-1.5, 3.5])
 plt.legend(loc="upper right")
 plt.grid()
-plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_color.pdf")
+plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/color.pdf")
 #plt.show()
 plt.clf()

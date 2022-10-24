@@ -26,14 +26,10 @@ with open(f"/cluster/scratch/lmachado/DataProducts/randoms/randoms_pixels_NSIDE_
     randoms["HPXPIXEL"]= np.load(f)
 
 
-# TODO remove me
-# Use small number of objects to test code
-targets = {
-    k: v[:3000000]
-    for k, v in targets.items()
-}
+# Range used to filter randoms was chosen via trial and error, to make sure
+# there is a similar number of randoms and targets
 randoms = {
-    k: v[:1000000]
+    k: v[:40000000]
     for k, v in randoms.items()
 }
 
@@ -49,8 +45,8 @@ randoms = {
     for k, v in randoms.items()
 }
 
-print("Total target count:", len(targets["RA"]))
-print("Total random count:", len(randoms["RA"]))
+print("Total target count (after masking):", len(targets["RA"]))
+print("Total random count (after masking):", len(randoms["RA"]))
 
 
 # Compute 2PCF for each group of targets
@@ -120,3 +116,6 @@ for bgs_category_name, ids in bgs_category_target_ids.items():
             np.save(f, bins[:-1])
         with open(f"/cluster/scratch/lmachado/DataProducts/2PCF/{REGION}_2PCF_wtheta_{bgs_category_name}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}.npy", "wb") as f:
             np.save(f, wtheta)
+
+
+print("Done computing 2PCF")
