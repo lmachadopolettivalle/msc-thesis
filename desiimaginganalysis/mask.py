@@ -179,6 +179,8 @@ if __name__ == "__main__":
 
     pixels_in_mask = np.array(list(pixels_in_mask))
 
+    # TODO remove small patches from mask to make it simpler
+
     # Visualize mask and targets together at NSIDE
     # Make custom cmap,
     # with white as the first color
