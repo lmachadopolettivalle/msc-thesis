@@ -12,7 +12,7 @@ REGION = "north"
 # Load target data
 print("Loading target data")
 targets_nside = 512
-targets = load_processed_target_data(region=REGION, extinction_correction=True)
+targets = load_processed_target_data(region=REGION, extinction_correction=True, apply_mask=True)
 
 # Load randoms
 print("Loading randoms")
@@ -38,15 +38,8 @@ randoms = {
 }
 
 
-# Apply mask to both targets and randoms
-print("Applying mask to targets and randoms")
-targets_masked = mask(targets["HPXPIXEL"], targets_nside, region=REGION)
-targets_ids_in_mask = np.where(targets_masked > 0)[0]
-
-targets = {
-    k: v[targets_ids_in_mask]
-    for k, v in targets.items()
-}
+# Apply mask to randoms
+print("Applying mask to randoms")
 
 randoms_masked = mask(randoms["HPXPIXEL"], randoms_nside, region=REGION)
 randoms_ids_in_mask = np.where(randoms_masked > 0)[0]

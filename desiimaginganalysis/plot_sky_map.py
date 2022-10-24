@@ -103,11 +103,11 @@ hp.mollview(
 # When using projscatter, with lonlat=True,
 # first input RA (from 0 to 360), then Dec (from -90 to +90)
 ras = np.linspace(0, 360, 700)
-north_south_split_radians = 32
-desi_southmost_radians = -15
+north_south_split_degrees = 32
+desi_southmost_degrees = -15
 
-hp.projscatter(ras, [north_south_split_radians]*len(ras), lonlat=True, c="black", s=2, label="N/S Split in LS")
-hp.projscatter(ras, [desi_southmost_radians]*len(ras), lonlat=True, c="red", s=2, label="DESI Southmost")
+hp.projscatter(ras, [north_south_split_degrees]*len(ras), lonlat=True, c="black", s=2, label="N/S Split in LS")
+hp.projscatter(ras, [desi_southmost_degrees]*len(ras), lonlat=True, c="red", s=2, label="DESI Southmost")
 
 
 hp.graticule()

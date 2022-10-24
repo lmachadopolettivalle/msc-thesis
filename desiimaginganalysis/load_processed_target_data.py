@@ -1,6 +1,7 @@
 # Read file with data from selected targets
 import numpy as np
 from desitarget.targets import bgs_mask
+from mask import mask
 
 # Parameters for magnitude computation
 CLIP_FLUX = 1e-16
@@ -40,7 +41,7 @@ def remove_spurious_objects(target_dict):
         for k, v in target_dict.items()
     }
 
-def load_processed_target_data(region="north", extinction_correction=True):
+def load_processed_target_data(region="north", extinction_correction=True, apply_mask=False):
     # Return dict, with values being arrays of the following fields for targets:
     # RA, DEC, Magnitudes, BGS Bright or Faint
     NSIDE = 512
@@ -78,5 +79,15 @@ def load_processed_target_data(region="north", extinction_correction=True):
 
     # Remove spurious objects
     data = remove_spurious_objects(data)
+
+    # If requested, apply mask to targets
+    if apply_mask:
+        targets_masked = mask(data["HPXPIXEL"], NSIDE, region=region)
+        targets_ids_in_mask = np.where(targets_masked > 0)[0]
+
+        data = {
+            k: v[targets_ids_in_mask]
+            for k, v in data.items()
+        }
 
     return data

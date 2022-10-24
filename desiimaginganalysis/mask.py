@@ -86,6 +86,10 @@ if __name__ == "__main__":
     full_footprint_pixels = nside2nside(NSIDE_FILES, NSIDE, full_footprint_pixels)
     full_target_pixels = nside2nside(NSIDE_FILES, NSIDE, full_target_pixels)
 
+    # Print number of pixels in each area, AFTER downgrading pixels
+    print("Number of pixels in north target set, before masking:", len(set(north_target_pixels)))
+    print("Number of pixels in south target set, before masking:", len(set(south_target_pixels)))
+
     # Obtain pixels in correct region
     # Convert cutoff from degrees to colatitude
     north_south_cutoff = np.pi/2 - np.radians(desitarget_resolve_dec())
@@ -280,6 +284,10 @@ if __name__ == "__main__":
     hp.mollview(m, nest=True, rot=[120, 0], title="North and South masks together", cmap=cmap, cbar=False)
     hp.graticule()
     plt.show()
+
+    # Print number of pixels in masks
+    print("Number of pixels in north mask", len(set(pixels_in_north_mask)))
+    print("Number of pixels in south mask", len(set(pixels_in_south_mask)))
 
     # Finally, save the resulting masks as bit arrays
     m = np.zeros(NPIX, dtype=int)
