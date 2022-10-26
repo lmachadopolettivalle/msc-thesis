@@ -34,13 +34,9 @@ HISTTYPE = {
 
 # Number of pixels in each region,
 # to help normalize histograms
-NUMBER_PIXELS_BEFORE_MASKING = {
-    "north": 6281,
-    "south": 18401,
-}
 NUMBER_PIXELS_AFTER_MASKING = {
-    "north": 6171,
-    "south": 17059,
+    "north": 24684,
+    "south": 68236,
 }
 
 # Load targets
@@ -80,7 +76,7 @@ bins = {
 
 # Make sure the r-band histogram has a bin ending exactly at 19.5,
 # to make the BRIGHT vs. FAINT cut more visible
-BRIGHT_FAINT_R_CUT = 19.5
+BRIGHT_FAINT_R_CUT = 19.54
 for region in bins.keys():
     original_bins = bins[region]["r"]
     bins[region]["r"] = np.concatenate((
