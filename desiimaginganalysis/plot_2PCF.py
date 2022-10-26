@@ -1,11 +1,35 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import os
+from scipy.optimize import curve_fit
+
+# Change colors used in plot
+plt.figure(figsize=(8, 6))
+ax = plt.gca()
+ax.set_prop_cycle("color", ["orange", "purple", "red", "green", "blue"])
 
 REGION = "north"
 
 BRIGHT = "Bright"
 FAINT = "Faint"
+
+def fit_power_law(xs, ys):
+    def func_powerlaw(x, exp, norm):
+        return x**exp * norm
+
+    # Only fit using 1e-3 < theta < 1
+    ids = np.where((1e-3 < ys) & (ys < 1))[0]
+
+    popt, pcov = curve_fit(
+        func_powerlaw,
+        xs[ids],
+        ys[ids],
+        p0=np.asarray([1.6, 0.05]), # Initial guess for parameters
+        maxfev=2000,
+    )
+
+    return popt, pcov
+
 
 # Gammas from Table 2 of Zarrouk+2021
 GAMMAS = {
@@ -64,16 +88,25 @@ for type_targets, filelist in TYPE_FILENAMES.items():
         with open(f"{PATH_TO_2PCF_FILES}/north_2PCF_wtheta_{type_targets}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}.npy", "rb") as f:
             wtheta = np.load(f)
 
-        wtheta_rescaled = wtheta * np.power(bins, -(1-GAMMAS[REGION][int(rmag_low)]))
+        # Fit 2PCF to power law of theta
+        popt, pcov = fit_power_law(bins, wtheta)
+        exponent = popt[0]
+        gamma = 1 - exponent
+        print(f"Exponent for r range {rmag_low}-{rmag_high} is {exponent}, which means gamma = {gamma}")
+        print(pcov)
 
-        plt.plot(bins, wtheta_rescaled, linewidth=LINEWIDTH, label=f"{rmag_low} < r < {rmag_high}")
+        wtheta_rescaled = wtheta * np.power(bins, -1*exponent)
 
+        plt.plot(bins, wtheta_rescaled, linewidth=LINEWIDTH, label=f"{rmag_low} < r < {rmag_high}" + " " + rf"$(\gamma = {gamma:.2f})$")
+
+    plt.xlim([2e-3, 20])
+    plt.ylim([1e-4, 2])
     plt.xscale("log")
     plt.yscale("log")
     plt.xlabel(r"$\theta$ [deg]")
     plt.ylabel(r"$w(\theta)$ x $\theta^{-(1 - \gamma)}$")
     plt.title(f"BGS {type_targets} Targets - {REGION}")
-    plt.legend(loc="upper right")
+    plt.legend(loc="upper right", ncol=2)
 
     plt.grid()
 
