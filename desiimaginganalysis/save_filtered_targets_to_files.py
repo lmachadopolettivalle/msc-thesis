@@ -1,3 +1,4 @@
+import healpy as hp
 import numpy as np
 
 from select_imaging_targets import targets, REGION
@@ -22,3 +23,18 @@ data = targets[:][COLUMNS]
 for column in COLUMNS:
     with open(f"/cluster/scratch/lmachado/DataProducts/targets/{REGION}/targets_{column}.npy", "wb") as f:
         np.save(f, data[:][column])
+
+# Finally, compute target HEALPix pixel IDs
+
+NSIDE = 512
+
+pixel_ids = hp.pixelfunc.ang2pix(
+    NSIDE,
+    data[:]["RA"], # 0 to 360
+    data[:]["DEC"], # -90 to +90
+    nest=True,
+    lonlat=True,
+)
+
+with open(f"/cluster/scratch/lmachado/DataProducts/targets/{REGION}/targets_HPXPIXEL_HPXNSIDE_{NSIDE}.npy", "wb") as f:
+    np.save(f, np.array(pixel_ids))

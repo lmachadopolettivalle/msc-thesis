@@ -2,16 +2,10 @@
 import numpy as np
 from desitarget.targets import bgs_mask
 from mask import mask
+from constants import *
 
 # Parameters for magnitude computation
 CLIP_FLUX = 1e-16
-
-BGS_BRIGHT = 1
-BGS_FAINT = 0
-# Note some targets may belong to WISE. We will not use these here.
-BGS_WISE = -1
-
-BANDS = ["g", "r", "z"]
 
 def mag_from_flux(fluxes, mw_transmissions, extinction_correction=True):
     if extinction_correction:
