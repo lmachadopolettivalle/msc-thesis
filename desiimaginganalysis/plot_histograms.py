@@ -160,72 +160,65 @@ faint_rminusz = {
 
 ### Color histograms
 bins_color_histograms = np.linspace(-1, 2, bin_count)
-for density in {True, False}:
-    # G - R Color Histogram
-    print("Plotting G - R color histogram")
-    for region in bright_gminusr.keys():
-        bright_values = bright_gminusr[region]
-        bright_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(bright_values)
-        faint_values = faint_gminusr[region]
-        faint_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(faint_values)
+# G - R Color Histogram
+print("Plotting G - R color histogram")
+for region in bright_gminusr.keys():
+    bright_values = bright_gminusr[region]
+    bright_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(bright_values)
+    faint_values = faint_gminusr[region]
+    faint_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(faint_values)
 
-        plt.hist(
-            bright_values,
-            weights=bright_weights,
-            alpha=(ALPHA if "filled" in HISTTYPE[region] else 1),
-            bins=bins_color_histograms, linewidth=LINEWIDTH, density=density, histtype=HISTTYPE[region], label=f"BGS Bright, {region}", color=bright_plot_color
-        )
-        plt.hist(
-            faint_values,
-            weights=faint_weights,
-            alpha=(ALPHA if "filled" in HISTTYPE[region] else 1),
-            bins=bins_color_histograms, linewidth=LINEWIDTH, density=density, histtype=HISTTYPE[region], label=f"BGS Faint, {region}", color=faint_plot_color
-        )
+    plt.hist(
+        bright_values,
+        weights=bright_weights,
+        alpha=(ALPHA if "filled" in HISTTYPE[region] else 1),
+        bins=bins_color_histograms, linewidth=LINEWIDTH, density=False, histtype=HISTTYPE[region], label=f"BGS Bright, {region}", color=bright_plot_color
+    )
+    plt.hist(
+        faint_values,
+        weights=faint_weights,
+        alpha=(ALPHA if "filled" in HISTTYPE[region] else 1),
+        bins=bins_color_histograms, linewidth=LINEWIDTH, density=False, histtype=HISTTYPE[region], label=f"BGS Faint, {region}", color=faint_plot_color
+    )
 
-    plt.xlim([0, 2])
-    plt.xlabel("g - r color")
-    if density:
-        plt.ylabel("PDF")
-    else:
-        plt.ylabel("Count, normalized by survey area")
-    plt.legend(loc="upper right")
-    plt.grid()
-    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/gminusr_{'density' if density else 'nodensity'}_hist.pdf")
-    #plt.show()
-    plt.clf()
+plt.xlim([0, 2])
+plt.xlabel("g - r color")
+plt.ylabel("Count, normalized by survey area")
+plt.legend(loc="upper right")
+plt.grid()
+plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/gminusr_hist.pdf")
+#plt.show()
+plt.clf()
 
-    # R - Z Color Histogram
-    print("Plotting R - Z color histogram")
-    for region in bright_rminusz.keys():
-        bright_values = bright_rminusz[region]
-        bright_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(bright_values)
-        faint_values = faint_rminusz[region]
-        faint_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(faint_values)
+# R - Z Color Histogram
+print("Plotting R - Z color histogram")
+for region in bright_rminusz.keys():
+    bright_values = bright_rminusz[region]
+    bright_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(bright_values)
+    faint_values = faint_rminusz[region]
+    faint_weights = [1 / NUMBER_PIXELS_AFTER_MASKING[region]] * len(faint_values)
 
-        plt.hist(
-            bright_values,
-            weights=bright_weights,
-            alpha=(ALPHA if "filled" in HISTTYPE[region] else 1),
-            bins=bins_color_histograms, linewidth=LINEWIDTH, density=density, histtype=HISTTYPE[region], label=f"BGS Bright, {region}", color=bright_plot_color
-        )
-        plt.hist(
-            faint_values,
-            weights=faint_weights,
-            alpha=(ALPHA if "filled" in HISTTYPE[region] else 1),
-            bins=bins_color_histograms, linewidth=LINEWIDTH, density=density, histtype=HISTTYPE[region], label=f"BGS Faint, {region}", color=faint_plot_color
-        )
+    plt.hist(
+        bright_values,
+        weights=bright_weights,
+        alpha=(ALPHA if "filled" in HISTTYPE[region] else 1),
+        bins=bins_color_histograms, linewidth=LINEWIDTH, density=False, histtype=HISTTYPE[region], label=f"BGS Bright, {region}", color=bright_plot_color
+    )
+    plt.hist(
+        faint_values,
+        weights=faint_weights,
+        alpha=(ALPHA if "filled" in HISTTYPE[region] else 1),
+        bins=bins_color_histograms, linewidth=LINEWIDTH, density=False, histtype=HISTTYPE[region], label=f"BGS Faint, {region}", color=faint_plot_color
+    )
 
-    plt.xlim([0, 2])
-    plt.xlabel("r - z color")
-    if density:
-        plt.ylabel("PDF")
-    else:
-        plt.ylabel("Count, normalized by survey area")
-    plt.legend(loc="upper right")
-    plt.grid()
-    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/rminusz_{'density' if density else 'nodensity'}_hist.pdf")
-    #plt.show()
-    plt.clf()
+plt.xlim([0, 2])
+plt.xlabel("r - z color")
+plt.ylabel("Count, normalized by survey area")
+plt.legend(loc="upper right")
+plt.grid()
+plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/rminusz_hist.pdf")
+#plt.show()
+plt.clf()
 
 #####
 print("Plotting color scatter plot")

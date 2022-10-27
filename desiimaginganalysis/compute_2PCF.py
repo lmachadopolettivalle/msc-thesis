@@ -72,8 +72,11 @@ rmag_bins = {
 
 # Compute correlation function
 print("Computing 2PCF")
-nbins = 25
-bins = np.logspace(np.log10(1e-3), np.log10(10), nbins + 1)
+nbins = 16
+bins = np.concatenate((
+    np.logspace(np.log10(1e-3), np.log10(1), nbins + 1),
+    np.logspace(np.log10(1), np.log10(20), 4),
+))
 nthreads = 2
 
 # Pre-compute randoms-related data
