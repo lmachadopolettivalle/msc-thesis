@@ -6,47 +6,64 @@ import numpy as np
 from desitarget.io import desitarget_resolve_dec
 from desitarget.geomask import hp_in_box, nside2nside
 
-def mask(pixel_ids, nside, region="both"):
+from constants import BASS_MzLS, DECaLS_NGC, DECaLS_SGC, ALL_REGIONS
+
+def mask(pixel_ids, nside, regions=ALL_REGIONS):
     # Given an array of pixel IDs at some NSIDE (in NESTED ordering),
     # return an array of True and False values indicating whether
     # each pixel is within the mask.
     # Can choose north, south, or both
     # for the mask region used.
-    if region not in {"north", "south", "both"}:
-        raise ValueError("region must be north, south, or both.")
+    for region in regions:
+        if region not in ALL_REGIONS:
+            raise ValueError("Region is not valid.")
 
-    with open ("/cluster/scratch/lmachado/DataProducts/masks/north_mask.npy", "rb") as f:
-        north_mask = np.load(f)
-    with open ("/cluster/scratch/lmachado/DataProducts/masks/south_mask.npy", "rb") as f:
-        south_mask = np.load(f)
+    with open ("/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy", "rb") as f:
+        BASS_MzLS_mask = np.load(f)
+    with open ("/cluster/scratch/lmachado/DataProducts/masks/DECaLS_NGC_mask.npy", "rb") as f:
+        DECaLS_NGC_mask = np.load(f)
+    with open ("/cluster/scratch/lmachado/DataProducts/masks/DECaLS_SGC_mask.npy", "rb") as f:
+        DECaLS_SGC_mask = np.load(f)
 
-    NSIDE_MASKS = hp.get_nside(north_mask)
+    NSIDE_MASKS = hp.get_nside(BASS_MzLS_mask)
 
     # Change mask maps to the nside of the pixel_ids passed into the function
-    north_mask = hp.pixelfunc.ud_grade(
-        north_mask,
+    BASS_MzLS_mask = hp.pixelfunc.ud_grade(
+        BASS_MzLS_mask,
         nside_out=nside,
         order_in="NEST",
         order_out="NEST",
         dtype=int,
     )
-    south_mask = hp.pixelfunc.ud_grade(
-        south_mask,
+    DECaLS_NGC_mask = hp.pixelfunc.ud_grade(
+        DECaLS_NGC_mask,
+        nside_out=nside,
+        order_in="NEST",
+        order_out="NEST",
+        dtype=int,
+    )
+    DECaLS_SGC_mask = hp.pixelfunc.ud_grade(
+        DECaLS_SGC_mask,
         nside_out=nside,
         order_in="NEST",
         order_out="NEST",
         dtype=int,
     )
 
-    north_results = north_mask[pixel_ids]
-    south_results = south_mask[pixel_ids]
+    BASS_MzLS_results = BASS_MzLS_mask[pixel_ids]
+    DECaLS_NGC_results = DECaLS_NGC_mask[pixel_ids]
+    DECaLS_SGC_results = DECaLS_SGC_mask[pixel_ids]
 
-    if region == "north":
-        return north_results
-    if region == "south":
-        return south_results
-    if region == "both":
-        return north_results | south_results
+    results = np.zeros(len(pixel_ids), dtype=int)
+
+    if BASS_MzLS in regions:
+        results = results | BASS_MzLS_results
+    if DECaLS_NGC in regions:
+        results = results | DECaLS_NGC_results
+    if DECaLS_SGC in regions:
+        results = results | DECaLS_SGC_results
+
+    return results
 
 # Running this file directly will
 # execute the mask creation code, which
@@ -125,6 +142,7 @@ if __name__ == "__main__":
     nest_south_map = hp.reorder(ring_south_map, r2n=True)
 
     nest_south_pixels = np.where(nest_south_map == 1)[0]
+
 
     # Sanity check: do these region maps add up to the whole sky?
     assert NPIX == len(set(ring_north_pixels).union(set(ring_south_pixels)))
@@ -206,12 +224,12 @@ if __name__ == "__main__":
     # so the background values are zero
     cmap = LinearSegmentedColormap.from_list(
         "",
-        ["white", "blue", "gray"]
+        ["white", "blue", "orange", "green", "gray"]
     )
 
     m = np.zeros(NPIX)
     m[full_target_pixels] = 1
-    m[pixels_in_mask] = 2
+    m[pixels_in_mask] = 4
 
     hp.mollview(m, nest=True, rot=[120, 0], title="Mask and target area", cbar=False, cmap=cmap)
 
@@ -268,34 +286,84 @@ if __name__ == "__main__":
     print("Gray footprint loss:", footprint_loss)
     print("Target area loss:", target_loss)
 
-    # Obtain northern and southern masks by taking intersection with each region
-    pixels_in_north_mask = np.array(list(
-        set(pixels_in_mask).intersection(set(nest_north_pixels))
-    ))
-    pixels_in_south_mask = np.array(list(
-        set(pixels_in_mask).intersection(set(nest_south_pixels))
-    ))
+    # Obtain masks for each of the three regions from the north and south masks
 
-    # Sanity check: when plotting both masks together,
-    # do they touch nicely at the border?
+    # BASS/MzLS
+    # First, intersect full mask with north pixels.
+    # Then, intersect result with RA/DEC box.
+    BASS_MzLS_box = set(list(hp_in_box(
+        NSIDE,
+        [60, 210, desitarget_resolve_dec()-1, 90-1e-3],
+        inclusive=True,
+    ))).union(set(list(
+        hp_in_box(
+            NSIDE,
+            [190, 310, desitarget_resolve_dec()-1, 90-1e-3],
+            inclusive=True,
+    ))))
+    pixels_in_BASS_MzLS = set(pixels_in_mask).intersection(set(nest_north_pixels)).intersection(set(BASS_MzLS_box))
+
+    # DECaLS NGC
+    # First, intersect with south pixels.
+    # Then, intersect result with RA/DEC box.
+    DECaLS_NGC_box = set(list(hp_in_box(
+        NSIDE,
+        [90, 210, -15, desitarget_resolve_dec()-1],
+        inclusive=True,
+    ))).union(set(list(
+        hp_in_box(
+            NSIDE,
+            [190, 290, -15, desitarget_resolve_dec()-1],
+            inclusive=True,
+    ))))
+
+    pixels_in_DECaLS_NGC = set(pixels_in_mask).intersection(set(nest_south_pixels)).intersection(set(DECaLS_NGC_box))
+
+    # DECaLS SGC
+    # This is the full mask, minus the BASS/MzLS pixels,
+    # minus the DECaLS NGC pixels.
+    pixels_in_DECaLS_SGC = set(pixels_in_mask).difference(pixels_in_BASS_MzLS).difference(pixels_in_DECaLS_NGC)
+
+    # Sanity check: do the 3 masks have all the pixels
+    # that used to be in the original mask, and are they disjoint?
+    assert set(pixels_in_mask) == pixels_in_BASS_MzLS.union(pixels_in_DECaLS_NGC).union(pixels_in_DECaLS_SGC)
+    assert pixels_in_BASS_MzLS.isdisjoint(pixels_in_DECaLS_NGC)
+    assert pixels_in_BASS_MzLS.isdisjoint(pixels_in_DECaLS_SGC)
+    assert pixels_in_DECaLS_NGC.isdisjoint(pixels_in_DECaLS_SGC)
+
+    # Convert to np.array to finally save them into files
+    pixels_in_BASS_MzLS = np.array(list(pixels_in_BASS_MzLS))
+    pixels_in_DECaLS_NGC = np.array(list(pixels_in_DECaLS_NGC))
+    pixels_in_DECaLS_SGC = np.array(list(pixels_in_DECaLS_SGC))
+
+    # Sanity check: when plotting these masks together,
+    # do they touch nicely at the borders?
     m = np.zeros(NPIX, dtype=int)
-    m[pixels_in_north_mask] = 1
-    m[pixels_in_south_mask] = 2
-    hp.mollview(m, nest=True, rot=[120, 0], title="North and South masks together", cmap=cmap, cbar=False)
+    m[pixels_in_BASS_MzLS] = 1
+    m[pixels_in_DECaLS_NGC] = 2
+    m[pixels_in_DECaLS_SGC] = 3
+    m[[32808]] = 4 # Quick trick: make one point near DEC=+90 have a larger value, to make colors in masks show as desired by cmap
+    hp.mollview(m, nest=True, rot=[120, 0], title="BASS/MzLS and DECaLS masks together", cmap=cmap, cbar=False)
     hp.graticule()
     plt.show()
 
     # Print number of pixels in masks
-    print("Number of pixels in north mask", len(set(pixels_in_north_mask)))
-    print("Number of pixels in south mask", len(set(pixels_in_south_mask)))
+    print("Number of pixels in BASS/MzLS mask", len(set(pixels_in_BASS_MzLS)))
+    print("Number of pixels in DECaLS NGC mask", len(set(pixels_in_DECaLS_NGC)))
+    print("Number of pixels in DECaLS SGC mask", len(set(pixels_in_DECaLS_SGC)))
 
     # Finally, save the resulting masks as bit arrays
     m = np.zeros(NPIX, dtype=int)
-    m[pixels_in_north_mask] = 1
-    with open ("/cluster/scratch/lmachado/DataProducts/masks/north_mask.npy", "wb") as f:
+    m[pixels_in_BASS_MzLS] = 1
+    with open ("/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy", "wb") as f:
         np.save(f, m)
 
     m = np.zeros(NPIX, dtype=int)
-    m[pixels_in_south_mask] = 1
-    with open ("/cluster/scratch/lmachado/DataProducts/masks/south_mask.npy", "wb") as f:
+    m[pixels_in_DECaLS_NGC] = 1
+    with open ("/cluster/scratch/lmachado/DataProducts/masks/DECaLS_NGC_mask.npy", "wb") as f:
+        np.save(f, m)
+
+    m = np.zeros(NPIX, dtype=int)
+    m[pixels_in_DECaLS_SGC] = 1
+    with open ("/cluster/scratch/lmachado/DataProducts/masks/DECaLS_SGC_mask.npy", "wb") as f:
         np.save(f, m)

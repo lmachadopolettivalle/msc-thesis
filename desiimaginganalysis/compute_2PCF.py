@@ -7,7 +7,9 @@ from Corrfunc.utils import convert_3d_counts_to_cf
 from load_processed_target_data import load_processed_target_data, BGS_BRIGHT, BGS_FAINT
 from mask import mask
 
-REGION = "north"
+from constants import BASS_MzLS, DECaLS_NGC, DECaLS_SGC
+
+REGION = BASS_MzLS
 
 # Load target data
 print("Loading target data")
@@ -33,11 +35,10 @@ randoms = {
     for k, v in randoms.items()
 }
 
-
 # Apply mask to randoms
 print("Applying mask to randoms")
 
-randoms_masked = mask(randoms["HPXPIXEL"], randoms_nside, region=REGION)
+randoms_masked = mask(randoms["HPXPIXEL"], randoms_nside, regions={REGION})
 randoms_ids_in_mask = np.where(randoms_masked > 0)[0]
 
 randoms = {

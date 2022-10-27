@@ -35,21 +35,23 @@ def remove_spurious_objects(target_dict):
         for k, v in target_dict.items()
     }
 
-def load_processed_target_data(region="north", extinction_correction=True, apply_mask=False):
+def load_processed_target_data(region=BASS_MzLS, extinction_correction=True, apply_mask=False):
     # Return dict, with values being arrays of the following fields for targets:
     # RA, DEC, Magnitudes, BGS Bright or Faint
     NSIDE = 512
 
     data = {}
 
-    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{region}/targets_RA.npy", "rb") as f:
+    sky_region = map_region_to_north_south(region)
+
+    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_RA.npy", "rb") as f:
         data["RA"] = np.load(f)
-    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{region}/targets_DEC.npy", "rb") as f:
+    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_DEC.npy", "rb") as f:
         data["DEC"] = np.load(f)
-    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{region}/targets_HPXPIXEL_HPXNSIDE_{NSIDE}.npy", "rb") as f:
+    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_HPXPIXEL_HPXNSIDE_{NSIDE}.npy", "rb") as f:
         data["HPXPIXEL"] = np.load(f)
 
-    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{region}/targets_BGS_TARGET.npy", "rb") as f:
+    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_BGS_TARGET.npy", "rb") as f:
         bgs_target_bitmasks = np.load(f)
 
     data["BGS_TARGET"] = np.array([
@@ -64,9 +66,9 @@ def load_processed_target_data(region="north", extinction_correction=True, apply
     mw_transmissions = {}
     mags = {}
     for band in BANDS:
-        with open(f"/cluster/scratch/lmachado/DataProducts/targets/{region}/targets_FLUX_{band.upper()}.npy", "rb") as f:
+        with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_FLUX_{band.upper()}.npy", "rb") as f:
             fluxes = np.load(f)
-        with open(f"/cluster/scratch/lmachado/DataProducts/targets/{region}/targets_MW_TRANSMISSION_{band.upper()}.npy", "rb") as f:
+        with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_MW_TRANSMISSION_{band.upper()}.npy", "rb") as f:
             mw_transmissions = np.load(f)
 
         data[f"MAG_{band.upper()}"] = np.array(mag_from_flux(fluxes, mw_transmissions, extinction_correction=extinction_correction))
@@ -76,7 +78,7 @@ def load_processed_target_data(region="north", extinction_correction=True, apply
 
     # If requested, apply mask to targets
     if apply_mask:
-        targets_masked = mask(data["HPXPIXEL"], NSIDE, region=region)
+        targets_masked = mask(data["HPXPIXEL"], NSIDE, regions={region})
         targets_ids_in_mask = np.where(targets_masked > 0)[0]
 
         data = {
