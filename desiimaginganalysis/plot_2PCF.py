@@ -3,12 +3,14 @@ import numpy as np
 import os
 from scipy.optimize import curve_fit
 
+from constants import BASS_MzLS, DECaLS_NGC, DECaLS_SGC
+
 # Change colors used in plot
 plt.figure(figsize=(8, 6))
 ax = plt.gca()
 ax.set_prop_cycle("color", ["orange", "purple", "red", "green", "blue"])
 
-REGION = "north"
+REGION = BASS_MzLS
 
 BRIGHT = "Bright"
 FAINT = "Faint"

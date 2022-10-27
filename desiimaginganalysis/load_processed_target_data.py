@@ -35,50 +35,64 @@ def remove_spurious_objects(target_dict):
         for k, v in target_dict.items()
     }
 
-def load_processed_target_data(region=BASS_MzLS, extinction_correction=True, apply_mask=False):
+def load_processed_target_data(regions=ALL_REGIONS, extinction_correction=True, apply_mask=False):
     # Return dict, with values being arrays of the following fields for targets:
     # RA, DEC, Magnitudes, BGS Bright or Faint
     NSIDE = 512
 
-    data = {}
+    data = {
+        "RA": np.array([]),
+        "DEC": np.array([]),
+        "HPXPIXEL": np.array([], dtype=int),
+        "BGS_TARGET": np.array([]),
+        "MAG_R": np.array([]),
+        "MAG_G": np.array([]),
+        "MAG_Z": np.array([]),
+    }
 
-    sky_region = map_region_to_north_south(region)
+    sky_regions = set()
+    for region in regions:
+        sky_regions.add(map_region_to_north_south(region))
 
-    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_RA.npy", "rb") as f:
-        data["RA"] = np.load(f)
-    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_DEC.npy", "rb") as f:
-        data["DEC"] = np.load(f)
-    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_HPXPIXEL_HPXNSIDE_{NSIDE}.npy", "rb") as f:
-        data["HPXPIXEL"] = np.load(f)
+    for sky_region in sky_regions:
+        with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_RA.npy", "rb") as f:
+            data["RA"] = np.concatenate((data["RA"], np.load(f)))
+        with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_DEC.npy", "rb") as f:
+            data["DEC"] = np.concatenate((data["DEC"], np.load(f)))
+        with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_HPXPIXEL_HPXNSIDE_{NSIDE}.npy", "rb") as f:
+            data["HPXPIXEL"] = np.concatenate((data["HPXPIXEL"], np.load(f)), dtype=int)
 
-    with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_BGS_TARGET.npy", "rb") as f:
-        bgs_target_bitmasks = np.load(f)
+        with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_BGS_TARGET.npy", "rb") as f:
+            bgs_target_bitmasks = np.load(f)
 
-    data["BGS_TARGET"] = np.array([
-        BGS_BRIGHT if "BGS_BRIGHT" in bgs_mask.names(i)
-        else (BGS_FAINT if "BGS_FAINT" in bgs_mask.names(i)
-            else BGS_WISE
-        )
-        for i in bgs_target_bitmasks
-    ])
+        bgs_targets_array = np.array([
+            BGS_BRIGHT if "BGS_BRIGHT" in bgs_mask.names(i)
+            else (BGS_FAINT if "BGS_FAINT" in bgs_mask.names(i)
+                else BGS_WISE
+            )
+            for i in bgs_target_bitmasks
+        ])
 
-    fluxes = {}
-    mw_transmissions = {}
-    mags = {}
-    for band in BANDS:
-        with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_FLUX_{band.upper()}.npy", "rb") as f:
-            fluxes = np.load(f)
-        with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_MW_TRANSMISSION_{band.upper()}.npy", "rb") as f:
-            mw_transmissions = np.load(f)
+        data["BGS_TARGET"] = np.concatenate((data["BGS_TARGET"], bgs_targets_array))
 
-        data[f"MAG_{band.upper()}"] = np.array(mag_from_flux(fluxes, mw_transmissions, extinction_correction=extinction_correction))
+        fluxes = {}
+        mw_transmissions = {}
+        mags = {}
+        for band in BANDS:
+            with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_FLUX_{band.upper()}.npy", "rb") as f:
+                fluxes = np.load(f)
+            with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_MW_TRANSMISSION_{band.upper()}.npy", "rb") as f:
+                mw_transmissions = np.load(f)
+
+            mag_array = np.array(mag_from_flux(fluxes, mw_transmissions, extinction_correction=extinction_correction))
+            data[f"MAG_{band.upper()}"] = np.concatenate((data[f"MAG_{band.upper()}"], mag_array))
 
     # Remove spurious objects
     data = remove_spurious_objects(data)
 
     # If requested, apply mask to targets
     if apply_mask:
-        targets_masked = mask(data["HPXPIXEL"], NSIDE, regions={region})
+        targets_masked = mask(data["HPXPIXEL"], NSIDE, regions=regions)
         targets_ids_in_mask = np.where(targets_masked > 0)[0]
 
         data = {

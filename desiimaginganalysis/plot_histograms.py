@@ -5,7 +5,8 @@
 from matplotlib import pyplot as plt
 import numpy as np
 
-from load_processed_target_data import load_processed_target_data, BANDS, BGS_BRIGHT, BGS_FAINT
+from constants import BANDS, BGS_BRIGHT, BGS_FAINT, BASS_MzLS, DECaLS_NGC, DECaLS_SGC, map_region_to_north_south
+from load_processed_target_data import load_processed_target_data
 
 # If True, use magnitudes with extinction correction
 # If False, show magnitudes without extinction correction
@@ -42,8 +43,8 @@ NUMBER_PIXELS_AFTER_MASKING = {
 # Load targets
 print("Loading target data")
 targets = {
-    "north": load_processed_target_data(region="north", extinction_correction=extinction_correction, apply_mask=True),
-    "south": load_processed_target_data(region="south", extinction_correction=extinction_correction, apply_mask=True),
+    "north": load_processed_target_data(regions={BASS_MzLS}, extinction_correction=extinction_correction, apply_mask=True),
+    "south": load_processed_target_data(regions={DECaLS_NGC, DECaLS_SGC}, extinction_correction=extinction_correction, apply_mask=True),
 }
 
 bright_targets = {
