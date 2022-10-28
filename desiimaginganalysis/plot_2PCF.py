@@ -136,7 +136,7 @@ for type_targets, filelist in TYPE_FILENAMES.items():
     ax3.set_ylabel(r"$w(\theta)$ x $\theta^{-(1 - \gamma)}$")
 
     fig1.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}.pdf")
-    fig2.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}_bestfit.pdf")
+    #fig2.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}_bestfit.pdf")
     fig3.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}_zarrouk21.pdf")
 
     plt.show()

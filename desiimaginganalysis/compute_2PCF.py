@@ -73,7 +73,7 @@ rmag_bins = {
 # Compute correlation function
 nbins = 16
 bins = np.concatenate((
-    np.logspace(np.log10(1e-3), np.log10(1), nbins + 1, endpoint=True),
+    np.logspace(np.log10(1e-3), np.log10(1), nbins + 1, endpoint=False),
     np.logspace(np.log10(1), np.log10(20), 4, endpoint=True),
 ))
 nthreads = 2
