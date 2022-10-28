@@ -31,7 +31,7 @@ with open(f"/cluster/scratch/lmachado/DataProducts/randoms/randoms_pixels_NSIDE_
 # Range used to filter randoms was chosen via trial and error, to make sure
 # there is a similar number of randoms and targets
 randoms = {
-    k: v[:40000000]
+    k: v[:15000000]
     for k, v in randoms.items()
 }
 
@@ -71,18 +71,19 @@ rmag_bins = {
 }
 
 # Compute correlation function
-print("Computing 2PCF")
 nbins = 16
 bins = np.concatenate((
-    np.logspace(np.log10(1e-3), np.log10(1), nbins + 1),
-    np.logspace(np.log10(1), np.log10(20), 4),
+    np.logspace(np.log10(1e-3), np.log10(1), nbins + 1, endpoint=True),
+    np.logspace(np.log10(1), np.log10(20), 4, endpoint=True),
 ))
 nthreads = 2
 
 # Pre-compute randoms-related data
+print("Computing mocks for randoms")
 RR_counts = DDtheta_mocks(1, nthreads, bins, randoms["RA"], randoms["DEC"])
 randoms_count = len(randoms["RA"])
 
+print("Computing 2PCF")
 for bgs_category_name, ids in bgs_category_target_ids.items():
     print(bgs_category_name)
     bgs_category_filtered_targets = {

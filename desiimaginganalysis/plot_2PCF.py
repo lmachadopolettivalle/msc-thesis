@@ -5,10 +5,6 @@ from scipy.optimize import curve_fit
 
 from constants import BASS_MzLS, DECaLS_NGC, DECaLS_SGC
 
-# Change colors used in plot
-plt.figure(figsize=(8, 6))
-ax = plt.gca()
-ax.set_prop_cycle("color", ["orange", "purple", "red", "green", "blue"])
 
 REGION = BASS_MzLS
 
@@ -35,14 +31,21 @@ def fit_power_law(xs, ys):
 
 # Gammas from Table 2 of Zarrouk+2021
 GAMMAS = {
-    "north": { # "north" refers to the BASS/MzLS rows
+    BASS_MzLS: {
         15: 1.642,
         16: 1.744,
         17: 1.776,
         18: 1.750,
         19: 1.725,
     },
-    "south": { # "south" refers to the DECaLS-SGC rows. NOTE I know part of our south targets are in the DECaLS-NGC, but it's a bit annoying to split the south for this gamma comparison.
+    DECaLS_NGC: {
+        15: 1.698,
+        16: 1.715,
+        17: 1.793,
+        18: 1.745,
+        19: 1.740,
+    },
+    DECaLS_SGC: {
         15: 1.698,
         16: 1.715,
         17: 1.793,
@@ -76,6 +79,17 @@ def get_rmag_range_from_filename(filename):
     rmag_low, rmag_high = rmag_range.split("-")
     return float(rmag_low), float(rmag_high)
 
+# Create figures
+# 1. without any gamma factor
+# 2. with our best-fit gamma factor
+# 3. with gamma from Zarrouk+2021
+fig1, ax1 = plt.subplots(1, 1, figsize=(8, 6))
+fig2, ax2 = plt.subplots(1, 1, figsize=(8, 6))
+fig3, ax3 = plt.subplots(1, 1, figsize=(8, 6))
+# Change colors used in plot
+for ax in {ax1, ax2, ax3}:
+    ax.set_prop_cycle("color", ["orange", "purple", "red", "green", "blue"])
+
 for type_targets, filelist in TYPE_FILENAMES.items():
     # Focus on BRIGHT targets
     if type_targets != BRIGHT:
@@ -87,7 +101,7 @@ for type_targets, filelist in TYPE_FILENAMES.items():
 
         rmag_low, rmag_high = get_rmag_range_from_filename(filename)
 
-        with open(f"{PATH_TO_2PCF_FILES}/north_2PCF_wtheta_{type_targets}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}.npy", "rb") as f:
+        with open(f"{PATH_TO_2PCF_FILES}/{REGION}_2PCF_wtheta_{type_targets}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}.npy", "rb") as f:
             wtheta = np.load(f)
 
         # Fit 2PCF to power law of theta
@@ -97,21 +111,32 @@ for type_targets, filelist in TYPE_FILENAMES.items():
         print(f"Exponent for r range {rmag_low}-{rmag_high} is {exponent}, which means gamma = {gamma}")
         print(pcov)
 
-        wtheta_rescaled = wtheta * np.power(bins, -1*exponent)
+        wtheta_rescaled_bestfit = wtheta * np.power(bins, -1*exponent)
+        wtheta_rescaled_zarrouk = wtheta * np.power(bins, -1*(1 - GAMMAS[REGION][int(rmag_low)]))
 
-        plt.plot(bins, wtheta_rescaled, linewidth=LINEWIDTH, label=f"{rmag_low} < r < {rmag_high}" + " " + rf"$(\gamma = {gamma:.2f})$")
+        ax1.plot(bins, wtheta, linewidth=LINEWIDTH, label=f"{rmag_low} < r < {rmag_high}")
+        ax2.plot(bins, wtheta_rescaled_bestfit, linewidth=LINEWIDTH, label=f"{rmag_low} < r < {rmag_high}" + " " + rf"$(\gamma = {gamma:.2f})$")
+        ax3.plot(bins, wtheta_rescaled_zarrouk, linewidth=LINEWIDTH, label=f"{rmag_low} < r < {rmag_high}" + " " + rf"$(\gamma = {GAMMAS[REGION][int(rmag_low)]:.2f})$")
 
-    plt.xlim([2e-3, 20])
-    plt.ylim([1e-4, 2])
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.xlabel(r"$\theta$ [deg]")
-    plt.ylabel(r"$w(\theta)$ x $\theta^{-(1 - \gamma)}$")
-    plt.title(f"BGS {type_targets} Targets - {REGION}")
-    plt.legend(loc="upper right", ncol=2)
+    for ax in {ax1, ax2, ax3}:
+        ax.set_xlim([2e-3, 20])
+        ax.set_ylim([1e-4, 2])
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xlabel(r"$\theta$ [deg]")
+        ax.legend(loc="upper right", ncol=2)
+        ax.grid()
 
-    plt.grid()
+    ax1.set_title(f"BGS {type_targets} Targets, {REGION}")
+    ax2.set_title(f"BGS {type_targets} Targets, {REGION} - Best Fit")
+    ax3.set_title(f"BGS {type_targets} Targets, {REGION}\nComparison against Zarrouk+21")
 
-    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}.pdf")
+    ax1.set_ylabel(r"$w(\theta)$")
+    ax2.set_ylabel(r"$w(\theta)$ x $\theta^{-(1 - \gamma)}$")
+    ax3.set_ylabel(r"$w(\theta)$ x $\theta^{-(1 - \gamma)}$")
+
+    fig1.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}.pdf")
+    fig2.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}_bestfit.pdf")
+    fig3.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}_zarrouk21.pdf")
 
     plt.show()
