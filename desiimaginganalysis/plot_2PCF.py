@@ -6,7 +6,9 @@ from scipy.optimize import curve_fit
 from constants import BASS_MzLS, DECaLS_NGC, DECaLS_SGC
 
 
-REGION = BASS_MzLS
+#REGION = BASS_MzLS
+REGION = DECaLS_NGC
+#REGION = DECaLS_SGC
 
 BRIGHT = "Bright"
 FAINT = "Faint"
@@ -39,11 +41,11 @@ GAMMAS = {
         19: 1.725,
     },
     DECaLS_NGC: {
-        15: 1.698,
-        16: 1.715,
-        17: 1.793,
-        18: 1.745,
-        19: 1.740,
+        15: 1.761,
+        16: 1.761,
+        17: 1.746,
+        18: 1.742,
+        19: 1.720,
     },
     DECaLS_SGC: {
         15: 1.698,
@@ -120,7 +122,6 @@ for type_targets, filelist in TYPE_FILENAMES.items():
 
     for ax in {ax1, ax2, ax3}:
         ax.set_xlim([2e-3, 20])
-        ax.set_ylim([1e-4, 2])
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.set_xlabel(r"$\theta$ [deg]")
@@ -134,6 +135,10 @@ for type_targets, filelist in TYPE_FILENAMES.items():
     ax1.set_ylabel(r"$w(\theta)$")
     ax2.set_ylabel(r"$w(\theta)$ x $\theta^{-(1 - \gamma)}$")
     ax3.set_ylabel(r"$w(\theta)$ x $\theta^{-(1 - \gamma)}$")
+
+    ax1.set_ylim([1e-4, 20])
+    ax2.set_ylim([1e-4, 2])
+    ax3.set_ylim([1e-4, 2])
 
     fig1.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}.pdf")
     #fig2.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}_bestfit.pdf")
