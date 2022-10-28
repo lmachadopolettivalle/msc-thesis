@@ -9,7 +9,9 @@ from mask import mask
 
 from constants import BASS_MzLS, DECaLS_NGC, DECaLS_SGC
 
-REGIONS = (BASS_MzLS, )
+#REGIONS = (BASS_MzLS, )
+#REGIONS = (DECaLS_NGC, )
+REGIONS = (DECaLS_SGC, )
 
 # Load target data
 print("Loading target data")
@@ -71,19 +73,16 @@ rmag_bins = {
 }
 
 # Compute correlation function
-nbins = 16
-bins = np.concatenate((
-    np.logspace(np.log10(1e-3), np.log10(1), nbins + 1, endpoint=False),
-    np.logspace(np.log10(1), np.log10(20), 4, endpoint=True),
-))
-nthreads = 2
+nbins = 24
+bins = np.logspace(np.log10(1e-3), np.log10(20), nbins + 1, endpoint=True)
+nthreads = 4
 
 # Pre-compute randoms-related data
 print("Computing mocks for randoms")
 RR_counts = DDtheta_mocks(1, nthreads, bins, randoms["RA"], randoms["DEC"])
 randoms_count = len(randoms["RA"])
 
-print("Computing 2PCF")
+print("Computing 2PCF for regions", REGIONS)
 for bgs_category_name, ids in bgs_category_target_ids.items():
     print(bgs_category_name)
     bgs_category_filtered_targets = {

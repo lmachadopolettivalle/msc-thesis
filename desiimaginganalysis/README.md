@@ -24,14 +24,6 @@ Prerequisites:
 Result:
 - Create several `target_*.npy` files, one for each data column.
 
-## Compute HEALPIx pixel IDs for selected targets
-
-Run `compute_target_healpix.py` to use the targets' RA and DEC values to determine the HEALPix pixel IDs where the targets lie on the sky.
-
-Prerequisites:
-- After running `save_filtered_targets_to_files.py`
-- Modify `compute_target_healpix.py` to use `REGION = "north"` or `REGION = "south"`, as well as to choose the desired NSIDE
-
 ## Count number of generated targets (optional)
 
 If interested, can compute number of objects in the original sweep files to compare against the resulting number of selected BGS targets. For this, use `count_targets.py`.
@@ -58,7 +50,21 @@ Run `mask.py` to generate HEALPix masks for both north and south regions. This g
 
 Prerequisites:
 - Run target selection for both north and south regions
-- Modify `mask.py` to use `REGION = "north"` or `REGION = "south"`, as well as to choose the desired NSIDE
+- Modify `mask.py` to choose the desired NSIDE
+
+Results:
+- Generate HEALPix mask files for BASS/MzLS, DECaLS-NGC, and DECaLS-SGC based on target data
+- Create mollview plot of targets and masks
+
+# Load target data (helper file)
+
+The file `load_processed_target_data.py` offers functionality to load the selected BGS targets and return their key values in a Python dictionary.
+
+If requested, this functionality will also apply the mask for the desired subset of regions (BASS/MzLS, DECaLS-NGC, DECaLS-SGC) to the target data, only returning targets within the chosen regions.
+
+Prerequisites:
+- Running target selection
+- Running script to create masks
 
 ## Visualization: Plot 1-point functions (histograms)
 
@@ -66,7 +72,7 @@ Run `plot_histograms.py` (using `Slurm`, e.g. `sbatch submit_small_job.sh plot_h
 
 Prerequisites:
 - Run target selection
-- Modify `plot_histograms.py` to use `REGION = "north"` or `REGION = "south"`, as well as to choose the desired NSIDE
+- Modify `plot_histograms.py` to choose the desired NSIDE
 
 Results:
 - Save several PDF files (under `images/`) with the histogram plots
@@ -101,3 +107,4 @@ Then, use `plot_2PCF.py` to display the computed corelation function.
 Prerequisites:
 - Run target selection
 - Run code to draw random points on the sphere
+- Modify code to choose which REGION (BASS/MzLS, DECaLS-NGC, DECaLS-SGC) to use when computing 2PCF
