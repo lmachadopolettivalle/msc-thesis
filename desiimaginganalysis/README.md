@@ -24,13 +24,13 @@ Prerequisites:
 Result:
 - Create several `target_*.npy` files, one for each data column.
 
-## Count number of generated targets (optional)
+## Useful counts of targets and mask areas (optional)
 
-If interested, can compute number of objects in the original sweep files to compare against the resulting number of selected BGS targets. For this, use `count_targets.py`.
+If interested, can compute a few useful counts for the selected targets and mask areas, as well as the number of objects in the original sweep files to compare against the resulting number of selected BGS targets. For this, use `useful_target_counts.py`.
 
 Prerequisites:
 - Run target selection
-- Modify `count_targets.py` to use `REGION = "north"` or `REGION = "south"`, as well as to choose the desired NSIDE
+- Modify `useful_target_counts.py` to use `REGION = "north"` or `REGION = "south"`, as well as to choose the desired NSIDE
 
 ## Create mask based on footprint area (optional)
 
