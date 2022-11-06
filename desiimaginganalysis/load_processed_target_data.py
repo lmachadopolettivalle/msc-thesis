@@ -35,7 +35,7 @@ def remove_spurious_objects(target_dict):
         for k, v in target_dict.items()
     }
 
-def load_processed_target_data(regions=ALL_REGIONS, extinction_correction=True, apply_mask=False):
+def load_processed_target_data(regions=ALL_REGIONS, extinction_correction=True, apply_mask=True):
     # Return dict, with values being arrays of the following fields for targets:
     # RA, DEC, Magnitudes, BGS Bright or Faint
     NSIDE = 512
@@ -48,6 +48,7 @@ def load_processed_target_data(regions=ALL_REGIONS, extinction_correction=True, 
         "MAG_R": np.array([]),
         "MAG_G": np.array([]),
         "MAG_Z": np.array([]),
+        "MORPHTYPE": np.array([]),
     }
 
     sky_regions = set()
@@ -61,6 +62,8 @@ def load_processed_target_data(regions=ALL_REGIONS, extinction_correction=True, 
             data["DEC"] = np.concatenate((data["DEC"], np.load(f)))
         with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_HPXPIXEL_HPXNSIDE_{NSIDE}.npy", "rb") as f:
             data["HPXPIXEL"] = np.concatenate((data["HPXPIXEL"], np.load(f)), dtype=int)
+        with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_MORPHTYPE.npy", "rb") as f:
+            data["MORPHTYPE"] = np.concatenate((data["MORPHTYPE"], np.load(f)))
 
         with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_BGS_TARGET.npy", "rb") as f:
             bgs_target_bitmasks = np.load(f)
