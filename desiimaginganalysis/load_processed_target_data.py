@@ -15,6 +15,11 @@ def mag_from_flux(fluxes, mw_transmissions, extinction_correction=True):
 
     return mags
 
+# Equation 2 in Zarrouk+21
+def rmag_bass_correction(unprimed_rmags, unprimed_gmags):
+    assert len(unprimed_rmags) == len(unprimed_gmags)
+    return unprimed_rmags - 0.039 * (unprimed_gmags - unprimed_rmags) + 0.011
+
 def remove_spurious_objects(target_dict):
     # Modify mags_dict to remove entries from all its mags,
     # if mag in at least one of them is due to clipping of the flux.
@@ -46,6 +51,7 @@ def load_processed_target_data(regions=ALL_REGIONS, extinction_correction=True, 
         "HPXPIXEL": np.array([], dtype=int),
         "BGS_TARGET": np.array([]),
         "MAG_R": np.array([]),
+        "MAG_R_PRIMED": np.array([]), # For BASS r-mag, apply correction via equation 2 from Zarrouk+21
         "MAG_G": np.array([]),
         "MAG_Z": np.array([]),
         "MORPHTYPE": np.array([]),
@@ -81,7 +87,10 @@ def load_processed_target_data(regions=ALL_REGIONS, extinction_correction=True, 
         fluxes = {}
         mw_transmissions = {}
         mags = {}
-        for band in BANDS:
+        for band in sorted(BANDS):
+            # BANDS must be sorted, to ensure we have computed g-band info before r-band,
+            # since g-band is required for r-mag correction from Zarrouk+21
+
             with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_FLUX_{band.upper()}.npy", "rb") as f:
                 fluxes = np.load(f)
             with open(f"/cluster/scratch/lmachado/DataProducts/targets/{sky_region}/targets_MW_TRANSMISSION_{band.upper()}.npy", "rb") as f:
@@ -89,6 +98,25 @@ def load_processed_target_data(regions=ALL_REGIONS, extinction_correction=True, 
 
             mag_array = np.array(mag_from_flux(fluxes, mw_transmissions, extinction_correction=extinction_correction))
             data[f"MAG_{band.upper()}"] = np.concatenate((data[f"MAG_{band.upper()}"], mag_array))
+
+            # Apply correction to r-mag from Zarrouk+21
+            # Only apply correction to northern targets,
+            # since correction is meant to make BASS r-mag values match
+            # more closely with DECaLS r-mag values
+            if band.lower() == "r":
+                if sky_region == "north":
+                    # To get corresponding g-mag values, read from data["MAG_G"],
+                    # knowing that the latest values have been appended for this same sky region,
+                    # with the same number of targets
+                    primed_rmag_array = rmag_bass_correction(
+                        mag_array,
+                        data["MAG_G"][-1*len(mag_array):]
+                    )
+                    data["MAG_R_PRIMED"] = np.concatenate((data["MAG_R_PRIMED"], primed_rmag_array))
+                elif sky_region == "south":
+                    data["MAG_R_PRIMED"] = np.concatenate((data["MAG_R_PRIMED"], mag_array))
+                else:
+                    raise ValueError(f"Sky region cannot be {sky_region}, only north or south!")
 
     # Remove spurious objects
     data = remove_spurious_objects(data)
