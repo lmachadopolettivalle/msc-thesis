@@ -6,7 +6,19 @@ from scipy.optimize import curve_fit
 from constants import BASS_MzLS, DECaLS_NGC, DECaLS_SGC
 
 # Zarrouk+21 Figure 11, for comparison
-SHOW_ZARROUK = True
+SHOW_ZARROUK = False
+
+#REGION = BASS_MzLS
+#REGION = DECaLS_NGC
+#REGION = DECaLS_SGC
+REGION = (BASS_MzLS, DECaLS_NGC, DECaLS_SGC, )
+
+# Use primed or unprimed r-mag data
+MAG_R_PRIMED = True
+if MAG_R_PRIMED:
+    primed_filename_extension = "_primed"
+else:
+    primed_filename_extension = "_unprimed"
 
 # Data obtained from Figure 11 using https://www.graphreader.com/
 ZARROUK_DATA = {
@@ -16,11 +28,6 @@ ZARROUK_DATA = {
     18: {"x":[0.002,0.005,0.008,0.012,0.018,0.026,0.039,0.057,0.084,0.123,0.184,0.266,0.39,0.576,0.831,1.218,1.785,2.577,3.775,5.572,7.585],"y":[0.013,0.013,0.013,0.013,0.014,0.014,0.014,0.015,0.014,0.015,0.014,0.015,0.015,0.015,0.015,0.014,0.013,0.01,0.006,0.004,0.002]},
     19: {"x":[0.002,0.005,0.008,0.012,0.018,0.027,0.039,0.058,0.084,0.123,0.179,0.266,0.387,0.563,0.825,1.218,1.772,2.615,3.803,5.531,8.163],"y":[0.006,0.007,0.007,0.007,0.007,0.008,0.008,0.008,0.008,0.008,0.008,0.009,0.009,0.009,0.009,0.008,0.006,0.005,0.003,0.001,0.001]},
 }
-
-#REGION = BASS_MzLS
-#REGION = DECaLS_NGC
-#REGION = DECaLS_SGC
-REGION = (BASS_MzLS, DECaLS_NGC, DECaLS_SGC, )
 
 BRIGHT = "Bright"
 FAINT = "Faint"
@@ -88,7 +95,7 @@ PATH_TO_2PCF_FILES = "/cluster/scratch/lmachado/DataProducts/2PCF/"
 FILENAMES = sorted(os.listdir(PATH_TO_2PCF_FILES))
 
 # Focus on desired region, on _bins_ files, and on bright vs. faint
-FILENAMES = [f for f in FILENAMES if f.startswith(str(REGION)) and "_bins_" in f]
+FILENAMES = [f for f in FILENAMES if f.startswith(str(REGION)) and ("_bins_" in f) and (f.endswith(f"{primed_filename_extension}.npy"))]
 
 TYPE_FILENAMES = {
     BRIGHT: [f for f in FILENAMES if BRIGHT in f],
@@ -98,7 +105,7 @@ TYPE_FILENAMES = {
 def get_rmag_range_from_filename(filename):
     rmag_range = filename[
         filename.find("range")+len("range"):
-        filename.find(".npy")
+        filename.find(f"{primed_filename_extension}.npy")
     ]
     rmag_low, rmag_high = rmag_range.split("-")
     return float(rmag_low), float(rmag_high)
@@ -125,7 +132,7 @@ for type_targets, filelist in TYPE_FILENAMES.items():
 
         rmag_low, rmag_high = get_rmag_range_from_filename(filename)
 
-        with open(f"{PATH_TO_2PCF_FILES}/{REGION}_2PCF_wtheta_{type_targets}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}.npy", "rb") as f:
+        with open(f"{PATH_TO_2PCF_FILES}/{REGION}_2PCF_wtheta_{type_targets}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}{primed_filename_extension}.npy", "rb") as f:
             wtheta = np.load(f)
 
         # Fit 2PCF to power law of theta
@@ -143,7 +150,8 @@ for type_targets, filelist in TYPE_FILENAMES.items():
         ax3.plot(bins, wtheta_rescaled_zarrouk, linewidth=LINEWIDTH, label=f"{rmag_low} < r < {rmag_high}" + " " + rf"$(\gamma = {GAMMAS[REGION][int(rmag_low)]:.2f})$")
 
         # Compare against Zarrouk+21 Figure 11
-        ax3.scatter(ZARROUK_DATA[int(rmag_low)]["x"], ZARROUK_DATA[int(rmag_low)]["y"])
+        if SHOW_ZARROUK:
+            ax3.scatter(ZARROUK_DATA[int(rmag_low)]["x"], ZARROUK_DATA[int(rmag_low)]["y"])
 
     for ax in {ax1, ax2, ax3}:
         ax.set_xlim([2e-3, 20])
@@ -153,9 +161,9 @@ for type_targets, filelist in TYPE_FILENAMES.items():
         ax.legend(loc="upper right", ncol=2)
         ax.grid()
 
-    ax1.set_title(f"BGS {type_targets} Targets, {REGION}")
-    ax2.set_title(f"BGS {type_targets} Targets, {REGION} - Best Fit")
-    ax3.set_title(f"BGS {type_targets} Targets, {REGION}\nComparison against Zarrouk+21")
+    ax1.set_title(f"BGS {type_targets} Targets, {REGION}, {'primed' if MAG_R_PRIMED else 'unprimed'}")
+    ax2.set_title(f"BGS {type_targets} Targets, {REGION}, {'primed' if MAG_R_PRIMED else 'unprimed'} - Best Fit")
+    ax3.set_title(f"BGS {type_targets} Targets, {REGION}, {'primed' if MAG_R_PRIMED else 'unprimed'}\nComparison against Zarrouk+21")
 
     ax1.set_ylabel(r"$w(\theta)$")
     ax2.set_ylabel(r"$w(\theta)$ x $\theta^{-(1 - \gamma)}$")
@@ -165,8 +173,8 @@ for type_targets, filelist in TYPE_FILENAMES.items():
     ax2.set_ylim([1e-4, 2])
     ax3.set_ylim([1e-4, 2])
 
-    fig1.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}.pdf")
-    #fig2.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}_bestfit.pdf")
-    fig3.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}_zarrouk21.pdf")
+    fig1.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}{primed_filename_extension}.pdf")
+    #fig2.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}_bestfit{primed_filename_extension}.pdf")
+    fig3.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/{REGION}_2PCF_{type_targets}_zarrouk21{primed_filename_extension}.pdf")
 
     plt.show()

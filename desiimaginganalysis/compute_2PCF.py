@@ -9,6 +9,12 @@ from mask import mask
 
 from constants import BASS_MzLS, DECaLS_NGC, DECaLS_SGC
 
+MAG_R_PRIMED = True
+if MAG_R_PRIMED:
+    MAG_R = "MAG_R_PRIMED"
+else:
+    MAG_R = "MAG_R"
+
 #REGIONS = (BASS_MzLS, )
 #REGIONS = (DECaLS_NGC, )
 #REGIONS = (DECaLS_SGC, )
@@ -100,8 +106,8 @@ for bgs_category_name, ids in bgs_category_target_ids.items():
     for rmag_low, rmag_high in rmag_bins[bgs_category_name]:
         print(rmag_low, rmag_high)
         rmag_ids = np.where(
-            (rmag_low <= bgs_category_filtered_targets["MAG_R"]) &
-            (bgs_category_filtered_targets["MAG_R"] < rmag_high)
+            (rmag_low <= bgs_category_filtered_targets[MAG_R]) &
+            (bgs_category_filtered_targets[MAG_R] < rmag_high)
         )[0]
         rmag_filtered_targets = {
             k: v[rmag_ids]
@@ -123,9 +129,9 @@ for bgs_category_name, ids in bgs_category_target_ids.items():
             DR_counts, RR_counts
         )
 
-        with open(f"/cluster/scratch/lmachado/DataProducts/2PCF/{REGIONS if len(REGIONS) > 1 else REGIONS[0]}_2PCF_bins_{bgs_category_name}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}.npy", "wb") as f:
+        with open(f"/cluster/scratch/lmachado/DataProducts/2PCF/{REGIONS if len(REGIONS) > 1 else REGIONS[0]}_2PCF_bins_{bgs_category_name}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if MAG_R_PRIMED else 'unprimed'}.npy", "wb") as f:
             np.save(f, bins[:-1])
-        with open(f"/cluster/scratch/lmachado/DataProducts/2PCF/{REGIONS if len(REGIONS) > 1 else REGIONS[0]}_2PCF_wtheta_{bgs_category_name}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}.npy", "wb") as f:
+        with open(f"/cluster/scratch/lmachado/DataProducts/2PCF/{REGIONS if len(REGIONS) > 1 else REGIONS[0]}_2PCF_wtheta_{bgs_category_name}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if MAG_R_PRIMED else 'unprimed'}.npy", "wb") as f:
             np.save(f, wtheta)
 
 
