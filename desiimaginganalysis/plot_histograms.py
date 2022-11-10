@@ -11,18 +11,11 @@ from load_processed_target_data import load_processed_target_data
 # Make copy of CONSTANT_BANDS to allow for local modifications
 BANDS = CONSTANT_BANDS.copy()
 
-# Choose whether to use the primed or unprimed version for the r-mag values
-MAG_R_PRIMED = False
-
-if MAG_R_PRIMED:
-    BANDS.remove("r")
-    BANDS.append("r_primed")
-    BANDS.sort()
-
-if MAG_R_PRIMED:
-    MAG_R = "MAG_R_PRIMED"
-else:
-    MAG_R = "MAG_R"
+# Add r_primed as a band for histogram plots
+# Note that we use the unprimed r for color computations,
+# since there is no primed g or z
+BANDS.append("r_primed")
+BANDS.sort()
 
 # If True, use magnitudes with extinction correction
 # If False, show magnitudes without extinction correction
@@ -31,7 +24,7 @@ extinction_correction = True
 # Parameters for plotting
 bin_count = 90
 
-LINEWIDTH = 1.25
+LINEWIDTH = 1.5
 
 ALPHA = 0.5
 
@@ -73,10 +66,10 @@ faint_targets = {
 }
 
 # Plot histograms of magnitudes in 3 bands
-print("Number of north bright objects:", len(targets["north"][MAG_R][bright_targets["north"]]))
-print("Number of north faint objects:", len(targets["north"][MAG_R][faint_targets["north"]]))
-print("Number of south bright objects:", len(targets["south"][MAG_R][bright_targets["south"]]))
-print("Number of south faint objects:", len(targets["south"][MAG_R][faint_targets["south"]]))
+print("Number of north bright objects:", len(targets["north"]["MAG_R"][bright_targets["north"]]))
+print("Number of north faint objects:", len(targets["north"]["MAG_R"][faint_targets["north"]]))
+print("Number of south bright objects:", len(targets["south"]["MAG_R"][bright_targets["south"]]))
+print("Number of south faint objects:", len(targets["south"]["MAG_R"][faint_targets["south"]]))
 
 # Determine binning for each color band
 bins = {
@@ -90,22 +83,22 @@ bins = {
 print("Plotting magnitude histograms")
 
 # Overplot r-primed and r-unprimed for comparison
-bright_label = "BGS Bright (E.C.)"
-faint_label = "BGS Faint (E.C.)"
+bright_label = "BGS Bright"
+faint_label = "BGS Faint"
 
 values = targets["north"]
 
 bright_r_values = values["MAG_R"][bright_targets["north"]]
-bright_r_weights = [1 / NUMBER_PIXELS_AFTER_MASKING["north"]] * len(bright_values)
+bright_r_weights = [1 / NUMBER_PIXELS_AFTER_MASKING["north"]] * len(bright_r_values)
 
 bright_rprimed_values = values["MAG_R_PRIMED"][bright_targets["north"]]
-bright_rprimed_weights = [1 / NUMBER_PIXELS_AFTER_MASKING["north"]] * len(bright_values)
+bright_rprimed_weights = [1 / NUMBER_PIXELS_AFTER_MASKING["north"]] * len(bright_rprimed_values)
 
 faint_r_values = values["MAG_R"][faint_targets["north"]]
-faint_r_weights = [1 / NUMBER_PIXELS_AFTER_MASKING["north"]] * len(faint_values)
+faint_r_weights = [1 / NUMBER_PIXELS_AFTER_MASKING["north"]] * len(faint_r_values)
 
 faint_rprimed_values = values["MAG_R_PRIMED"][faint_targets["north"]]
-faint_rprimed_weights = [1 / NUMBER_PIXELS_AFTER_MASKING["north"]] * len(faint_values)
+faint_rprimed_weights = [1 / NUMBER_PIXELS_AFTER_MASKING["north"]] * len(faint_rprimed_values)
 
 plt.hist(
     bright_r_values,
@@ -145,9 +138,6 @@ plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/r_prim
 
 #plt.show()
 plt.clf()
-
-exit() # TODO remove me
-
 
 # Plot histograms
 for band in BANDS:
@@ -201,20 +191,20 @@ for band in BANDS:
 
 # Plot histograms of colors
 bright_gminusr = {
-    region: values["MAG_G"][bright_targets[region]] - values[MAG_R][bright_targets[region]]
+    region: values["MAG_G"][bright_targets[region]] - values["MAG_R"][bright_targets[region]]
     for region, values in targets.items()
 }
 faint_gminusr = {
-    region: values["MAG_G"][faint_targets[region]] - values[MAG_R][faint_targets[region]]
+    region: values["MAG_G"][faint_targets[region]] - values["MAG_R"][faint_targets[region]]
     for region, values in targets.items()
 }
 
 bright_rminusz = {
-    region: values[MAG_R][bright_targets[region]] - values["MAG_Z"][bright_targets[region]]
+    region: values["MAG_R"][bright_targets[region]] - values["MAG_Z"][bright_targets[region]]
     for region, values in targets.items()
 }
 faint_rminusz = {
-    region: values[MAG_R][faint_targets[region]] - values["MAG_Z"][faint_targets[region]]
+    region: values["MAG_R"][faint_targets[region]] - values["MAG_Z"][faint_targets[region]]
     for region, values in targets.items()
 }
 
@@ -246,7 +236,7 @@ plt.xlabel("g - r color")
 plt.ylabel("Count, normalized by survey area")
 plt.legend(loc="upper right")
 plt.grid()
-plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/gminusr_{'primed' if MAG_R_PRIMED else 'unprimed'}_hist.pdf")
+plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/gminusr_unprimed_hist.pdf")
 #plt.show()
 plt.clf()
 
@@ -276,7 +266,7 @@ plt.xlabel("r - z color")
 plt.ylabel("Count, normalized by survey area")
 plt.legend(loc="upper right")
 plt.grid()
-plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/rminusz_{'primed' if MAG_R_PRIMED else 'unprimed'}_hist.pdf")
+plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/rminusz_unprimed_hist.pdf")
 #plt.show()
 plt.clf()
 
@@ -301,6 +291,6 @@ for region in bright_rminusz.keys():
     plt.title(f"Color plot for {region} region")
     plt.legend(loc="upper right")
     plt.grid()
-    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/color_{region}_{'primed' if MAG_R_PRIMED else 'unprimed'}.pdf")
+    plt.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/color_{region}_unprimed.pdf")
     #plt.show()
     plt.clf()
