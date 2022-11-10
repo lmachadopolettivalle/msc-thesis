@@ -9,7 +9,7 @@ ALPHA = 0.6
 
 plt.rcParams['font.size'] = '12'
 
-UNIQUE_MORPHTYPES = [b"PSF", b"DEV", b"EXP", b"REX", b"SER"]
+UNIQUE_MORPHTYPES = ["PSF", "DEV", "EXP", "REX", "SER"]
 
 # Load targets
 print("Loading target data")
@@ -60,7 +60,7 @@ for region in targets.keys():
             plt.scatter(
                 targets[region]["RMINUSZ"][sample_target_ids],
                 targets[region]["GMINUSR"][sample_target_ids],
-                label=morphtype.decode("utf-8"),
+                label=morphtype,
                 s=4,
                 alpha=ALPHA,
 

@@ -12,7 +12,7 @@ from load_processed_target_data import load_processed_target_data
 BANDS = CONSTANT_BANDS.copy()
 
 # Choose whether to use the primed or unprimed version for the r-mag values
-MAG_R_PRIMED = True
+MAG_R_PRIMED = False
 
 if MAG_R_PRIMED:
     BANDS.remove("r")
@@ -31,7 +31,7 @@ extinction_correction = True
 # Parameters for plotting
 bin_count = 90
 
-LINEWIDTH = 2
+LINEWIDTH = 1.25
 
 ALPHA = 0.5
 
@@ -80,32 +80,74 @@ print("Number of south faint objects:", len(targets["south"][MAG_R][faint_target
 
 # Determine binning for each color band
 bins = {
-    region: {
-        band: np.linspace(
-            min(values[f"MAG_{band.upper()}"][bright_targets[region]]),
-            max(values[f"MAG_{band.upper()}"][faint_targets[region]]),
-            bin_count,
-        )
-        for band in BANDS
-    }
-    for region, values in targets.items()
+    "g": np.linspace(15, 22, bin_count),
+    "r_primed": np.linspace(14, 20.5, bin_count),
+    "r": np.linspace(14, 20.5, bin_count),
+    "z": np.linspace(15, 20.5, bin_count),
 }
-
-"""
-# Make sure the r-band histogram has a bin ending exactly at 19.5,
-# to make the BRIGHT vs. FAINT cut more visible
-BRIGHT_FAINT_R_CUT = 19.54
-for region in bins.keys():
-    original_bins = bins[region]["r"]
-    bins[region]["r"] = np.concatenate((
-        original_bins[original_bins <= BRIGHT_FAINT_R_CUT],
-        [BRIGHT_FAINT_R_CUT],
-        original_bins[original_bins > BRIGHT_FAINT_R_CUT],
-    ))
-"""
 
 # Begin plotting
 print("Plotting magnitude histograms")
+
+# Overplot r-primed and r-unprimed for comparison
+bright_label = "BGS Bright (E.C.)"
+faint_label = "BGS Faint (E.C.)"
+
+values = targets["north"]
+
+bright_r_values = values["MAG_R"][bright_targets["north"]]
+bright_r_weights = [1 / NUMBER_PIXELS_AFTER_MASKING["north"]] * len(bright_values)
+
+bright_rprimed_values = values["MAG_R_PRIMED"][bright_targets["north"]]
+bright_rprimed_weights = [1 / NUMBER_PIXELS_AFTER_MASKING["north"]] * len(bright_values)
+
+faint_r_values = values["MAG_R"][faint_targets["north"]]
+faint_r_weights = [1 / NUMBER_PIXELS_AFTER_MASKING["north"]] * len(faint_values)
+
+faint_rprimed_values = values["MAG_R_PRIMED"][faint_targets["north"]]
+faint_rprimed_weights = [1 / NUMBER_PIXELS_AFTER_MASKING["north"]] * len(faint_values)
+
+plt.hist(
+    bright_r_values,
+    weights=bright_r_weights,
+    alpha=1,
+    bins=bins["r"], linewidth=LINEWIDTH, density=False, histtype="step", label=f"{bright_label}, unprimed", color=bright_plot_color
+)
+plt.hist(
+    faint_r_values,
+    weights=faint_r_weights,
+    alpha=1,
+    bins=bins["r"], linewidth=LINEWIDTH, density=False, histtype="step", label=f"{faint_label}, unprimed", color=faint_plot_color
+)
+
+plt.hist(
+    bright_rprimed_values,
+    weights=bright_rprimed_weights,
+    alpha=ALPHA,
+    bins=bins["r_primed"], linewidth=LINEWIDTH, density=False, histtype="stepfilled", label=f"{bright_label}, primed", color=bright_plot_color
+)
+plt.hist(
+    faint_rprimed_values,
+    weights=faint_rprimed_weights,
+    alpha=ALPHA,
+    bins=bins["r_primed"], linewidth=LINEWIDTH, density=False, histtype="stepfilled", label=f"{faint_label}, primed", color=faint_plot_color
+)
+
+plt.xlim([14, 22])
+
+plt.title("Comparison r-primed and unprimed, BASS")
+plt.xlabel("r magnitude, extinction corrected")
+
+plt.ylabel("Count, normalized by survey area")
+plt.legend(loc="upper left")
+plt.grid()
+plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/r_primed_r_comparison.pdf")
+
+#plt.show()
+plt.clf()
+
+exit() # TODO remove me
+
 
 # Plot histograms
 for band in BANDS:
@@ -128,13 +170,13 @@ for band in BANDS:
             bright_values,
             weights=bright_weights,
             alpha=(ALPHA if "filled" in HISTTYPE[region] else 1),
-            bins=bins[region][band], linewidth=LINEWIDTH, density=False, histtype=HISTTYPE[region], label=f"{bright_label}, {region}", color=bright_plot_color
+            bins=bins[band], linewidth=LINEWIDTH, density=False, histtype=HISTTYPE[region], label=f"{bright_label}, {region}", color=bright_plot_color
         )
         plt.hist(
             faint_values,
             weights=faint_weights,
             alpha=(ALPHA if "filled" in HISTTYPE[region] else 1),
-            bins=bins[region][band], linewidth=LINEWIDTH, density=False, histtype=HISTTYPE[region], label=f"{faint_label}, {region}", color=faint_plot_color
+            bins=bins[band], linewidth=LINEWIDTH, density=False, histtype=HISTTYPE[region], label=f"{faint_label}, {region}", color=faint_plot_color
         )
 
     plt.xlim([14, 22])

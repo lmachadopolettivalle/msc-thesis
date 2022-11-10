@@ -6,6 +6,6 @@
 #SBATCH -J luis_job
 #SBATCH -o luis_output
 #SBATCH -e luis_error
-#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-type=END,FAIL
 
 /cluster/home/lmachado/venv/bin/python $1

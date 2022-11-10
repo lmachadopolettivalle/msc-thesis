@@ -121,6 +121,17 @@ def load_processed_target_data(regions=ALL_REGIONS, extinction_correction=True, 
     # Remove spurious objects
     data = remove_spurious_objects(data)
 
+    # Convert MORPHTYPE from bytes to str
+    data["MORPHTYPE"] = np.vectorize(lambda x: x.decode("utf-8"))(data["MORPHTYPE"])
+
+    # Remove objects of certain MORPHTYPE (e.g. PSF, which are stars)
+    # NOTE we invert the mask, to keep only the other MORPHTYPE values
+    good_morphtypes_mask = np.isin(data["MORPHTYPE"], ["PSF"], invert=True)
+    data = {
+        k: v[good_morphtypes_mask]
+        for k, v in data.items()
+    }
+
     # If requested, apply mask to targets
     if apply_mask:
         targets_masked = mask(data["HPXPIXEL"], NSIDE, regions=regions)
