@@ -77,6 +77,16 @@ Prerequisites:
 Results:
 - Save several PDF files (under `images/`) with the histogram plots
 
+## Visualization: color scatter plot separated by target's MORPHTYPE
+
+To see color distributions of each MORPHTYPE selected, use `plot_morphtypes_colors.py` to create a scatter plot with colors of targets separated by MORPHTYPE.
+
+Prerequisites:
+- Run target selection
+
+Results:
+- Save a PDF file (under `images/`) with the color scatter plot
+
 ## Visualization: plot targets on the sky, as well as footprints
 
 Use `plot_sky_map.py` to display the selected targets as well as the footprint on a Mollview plot.
