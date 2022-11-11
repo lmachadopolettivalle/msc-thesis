@@ -1,0 +1,13 @@
+Corrfunc
+fitsio
+numpy
+scipy
+tqdm
+astropy
+pyyaml
+requests
+h5py
+scikit-learn
+matplotlib
+healpy
+photutils
