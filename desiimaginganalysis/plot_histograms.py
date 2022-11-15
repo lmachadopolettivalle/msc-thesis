@@ -32,10 +32,12 @@ ALPHA = 0.5
 blue = "#004488"
 yellow = "#ddaa33"
 red = "#bb5566"
+orange = "#EE7733"
+teal = "#009988"
 
 plt.rcParams['font.size'] = '12'
-bright_plot_color = blue
-faint_plot_color = red
+bright_plot_color = teal
+faint_plot_color = orange
 
 HISTTYPE = {
     "north": "step",
