@@ -11,17 +11,23 @@
 # partially copied from: halo_subhalo_from_plc_hist_scatterinpos_new_6.py
 
 # ----------------------------------------------------
-# IMPOTRS
+# IMPORTS
 # -----------------------------------------------------
 
-#import time
-#start_time = time.clock() 
+print("Importing required libraries...")
 
-import numpy as np
-import matplotlib.pyplot as plt
-from halotools.empirical_models import NFWProfile # ATTENTION: needs hdf5 and python/3.6.0!!!
 from collections import defaultdict
+from halotools.empirical_models import NFWProfile # ATTENTION: needs hdf5 and python/3.6.0!!!
 import healpy as hp
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+from tqdm import tqdm
+
+print("Done importing libraries.")
+
+# Initialize NFWProfile model
+nfw_model = NFWProfile()
 
 # -----------------------------------------------------
 # SPECIFICATIONS FOR SIMULATION RUNS
@@ -29,29 +35,58 @@ import healpy as hp
 # THIS IS A SECTION THAT NEEDS TO BE ADAPTED EACH TIME!
 # -----------------------------------------------------
 
-dirname = './'
-cosmology_file = 'pinocchio.example.cosmology.out'
-plc_file = 'plc/pinocchio.example.plc.out'
-history_file = 'history/pinocchio.example.histories.out'
-file_ending = ['.0','.1','.2','.3','.4','.5','.6','.7','.8','.9','.10','.11','.12','.13','.14','.15','.16','.17','.18','.19','.20','.21','.22','.23'] 
-# only one file: file_ending = ['']
+dirname = "/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/"
+RUN_FLAG = "luis" # Corresponds to "RunFlag" in PINOCCHIO parameter file. Name of the run being analyzed.
+
+cosmology_file = f'pinocchio.{RUN_FLAG}.cosmology.out'
+plc_file = f'pinocchio.{RUN_FLAG}.plc.out'
+history_file = f'pinocchio.{RUN_FLAG}.histories.out'
+
+# num_files corresponds to NumFiles in PINOCCHIO output file
+# Note that it may differ from the requested NumFiles in the input parameter file. PINOCCHIO requires that NumFiles divides NumTasks, and may change the NumFiles value if not.
+num_files = 2
+if num_files == 1:
+    file_ending = [""]
+else:
+    file_ending = [f".{i}" for i in range(num_files)]
+
+# Create output directory
+outfile_dir = './halo_subhalo_plc/'
+if os.path.isdir(outfile_dir):
+    print(f"{outfile_dir} directory already exists")
+else:
+    print(f"Creating new output directory, {outfile_dir}")
+    os.mkdir(outfile_dir)
+
 outfile_halos = 'pinocchio_masked_halos_subhalos_plc'
-outfile_dir = 'halo_subhalo_plc/'
 outfile_hist_halos = 'pinocchio_masked_halos_hist2D'
 outfile_hist_subhalos = 'pinocchio_masked_subhalos_hist2D'
 
-m_part = 1.11473e+09  # from PINOCCHIO output file, in Msun/h
-min_num_part = 10
-num_rep = 117
-num_files = 24 # >= 1
-z_min = 0.0
-z_max = 0.75
+# Read following information from PINOCCHIO output file,
+# after running PINOCCHIO
+m_part = 3.85486e+11  # In Msun/h. Corresponds to "Particle Mass (Msun/h)"
+min_num_part = 10 # Corresponds to "MinHaloMass (particles)"
+num_rep = 67 # Number of replications. Found in line "The box will be replicated ... times to construct the PLC"
+z_min = 0.0 # Ending (lowest) redshift. Found in "The Past Light Cone will be reconstruct from z=... to z=..."
+z_max = 0.5 # Starting (highest) redshift. Found in "The Past Light Cone will be reconstruct from z=... to z=..."
 
-infile_footprint = '/cluster/work/refregier/bernerp/DES/DES_Y1/y1a1_gold_1.0.2_wide_footprint_4096.fit'
-NSIDE = 4096
+# Provide mask used to filter out regions wherein to find subhalos
+# TODO change this to accept mask as npy array
+# TODO for now, setting NSIDE to 1 bypasses the mask
+infile_footprint = '/cluster/work/refregier/bernerp/DES/DES_Y1/y1a1_gold_1.0.2_wide_footprint_4096.fit' # NSIDE = 4096
 dec_min = -90
-dec_max = -30
-# set NSIDE = 1 if no mask is provided
+dec_max = 90
+NSIDE = 1
+
+# TODO change this whole code to support RING or NEST formats
+NEST = False
+
+# LOAD PIXEL MASK
+if NSIDE > 1:
+    # TODO add code to determine NSIDE from the provided mask
+    m_footprint = hp.fitsfunc.read_map(infile_footprint)
+else:
+    m_footprint = np.ones(12)
 
 # binning settings for 2D histograms
 num_z_bins = 150
@@ -85,11 +120,10 @@ print('for 2D histograms: num_mass_bins = ' + str(num_mass_bins))
 # THIS IS A SECTION THAT NEEDS TO BE ADAPTED EACH TIME!
 # -----------------------------------------------------
 
-omega_l = 0.724
-omega_m = 0.276
-#omega_l = 0.7
-#omega_m = 0.3
-H0 = 70. # hubble constant in km/(s*Mpc)
+omega_l = 0.7 # Corresponds to "OmegaLambda" in output file
+omega_m = 0.3 # Corresponds to "Omega0" in output file
+H0 = 70. # Hubble constant in km/(s*Mpc). Corresponds to 100 * value of "Hubble100" in output file
+
 H0_1 = 1./(H0/(3.09e19))/(3.15576e16) # inverse of hubble constant in Gyr
 t_dyn_0 = 0.1*H0_1 # dynamical time, using H0 instead of H(z)
 
@@ -106,7 +140,6 @@ cdf_min = cdf[eta_x == 0.2]
 cdf_max = cdf[eta_x == 1.0] # does not matter much
 
 print('definitions done')
-print("--- %s seconds ---" % round(time.clock() - start_time, 2))
 
 # -----------------------------------------------------
 # DEFINITIONS OF FUNCTIONS
@@ -137,40 +170,31 @@ Nmin = 0.
 # output of loop: l=number of halos and subhalos combined
 #@profile
 def loop_dict(l):
-	for i in range(l):
-		subs = np.array(subs_dict[haloid[i]])
-		if subs != []:
-			factor = 1.0
-			b_val = 0.92*growth_rate[i]
-			tdf = (0.9*t_dyn_0*0.216*np.ones(len(subs)))*((m_ratio[subs])**b_val * factor)/np.log(np.ones(len(subs))+m_ratio[subs])*np.exp(1.9*eta[subs])
-			delta_t = delta_time_from_z_z2array(redshift[i], acc_red[subs]) # delta_t can be negative like this
-			subhalos = subs[(delta_t < tdf) & (delta_t >= 0) & (m_ratio_temp[subs] < 100.)]
-			n = len(subhalos)
-			if n > 0:
-				delta_t_subhalos = delta_t[(delta_t < tdf) & (delta_t >= 0) & (m_ratio_temp[subs] < 100.)] # for saving
-				tdf_subhalos = tdf[(delta_t < tdf) & (delta_t >= 0) & (m_ratio_temp[subs] < 100.)] # for saving
-				N_sample = np.random.uniform(Nmin, Nmax, n)
-				x_sample = np.array([rad_x[cum_N == min(cum_N[(cum_N - yy) > 0])][0] for yy in N_sample])
-				rad_i = x_sample*0.37*nfw.halo_mass_to_halo_radius(M[i]) # assumption: the given radius is approximately the virial radius
-				x_i = np.reshape(x_rand_prep[l:l+n]*rad_i+X[i], (n,1))
-				y_i = np.reshape(y_rand_prep[l:l+n]*rad_i+Y[i], (n,1))
-				z_i = np.reshape(z_rand_prep[l:l+n]*rad_i+Z[i], (n,1))
-				halo_subhalo_array[l:l+n] = np.concatenate((np.reshape(groupid[subhalos], (n,1)), np.reshape(num_part[subhalos], (n,1))*m_part, redshift[i]*np.ones((n,1)), x_i, y_i, z_i, np.zeros((n,1)), M[i]*np.ones((n,1)), np.zeros((n,1)), np.reshape(delta_t_subhalos, (n,1)), np.reshape(tdf_subhalos, (n,1)), haloid[i]*np.ones((n,1)) ), axis=1)
-				halo_subhalo_array[i,6] = M[i] - m_part*np.sum(num_part[subhalos])
-				l = l+n
-	return l
+    for i in tqdm(range(l)):
+        subs = np.array(subs_dict[haloid[i]])
+        if len(subs) != 0:
+            factor = 1.0
+            b_val = 0.92*growth_rate[i]
+            tdf = (0.9*t_dyn_0*0.216*np.ones(len(subs)))*((m_ratio[subs])**b_val * factor)/np.log(np.ones(len(subs))+m_ratio[subs])*np.exp(1.9*eta[subs])
+            delta_t = delta_time_from_z_z2array(redshift[i], acc_red[subs]) # delta_t can be negative like this
+            subhalos = subs[(delta_t < tdf) & (delta_t >= 0) & (m_ratio_temp[subs] < 100.)]
+            n = len(subhalos)
+            if n > 0:
+                    delta_t_subhalos = delta_t[(delta_t < tdf) & (delta_t >= 0) & (m_ratio_temp[subs] < 100.)] # for saving
+                    tdf_subhalos = tdf[(delta_t < tdf) & (delta_t >= 0) & (m_ratio_temp[subs] < 100.)] # for saving
+                    N_sample = np.random.uniform(Nmin, Nmax, n)
+                    x_sample = np.array([rad_x[cum_N == min(cum_N[(cum_N - yy) > 0])][0] for yy in N_sample])
+                    rad_i = x_sample * 0.37 * nfw_model.halo_mass_to_halo_radius(M[i]) # assumption: the given radius is approximately the virial radius
+                    x_i = np.reshape(x_rand_prep[l:l+n]*rad_i+X[i], (n,1))
+                    y_i = np.reshape(y_rand_prep[l:l+n]*rad_i+Y[i], (n,1))
+                    z_i = np.reshape(z_rand_prep[l:l+n]*rad_i+Z[i], (n,1))
+                    halo_subhalo_array[l:l+n] = np.concatenate((np.reshape(groupid[subhalos], (n,1)), np.reshape(num_part[subhalos], (n,1))*m_part, redshift[i]*np.ones((n,1)), x_i, y_i, z_i, np.zeros((n,1)), M[i]*np.ones((n,1)), np.zeros((n,1)), np.reshape(delta_t_subhalos, (n,1)), np.reshape(tdf_subhalos, (n,1)), haloid[i]*np.ones((n,1)) ), axis=1)
+                    halo_subhalo_array[i,6] = M[i] - m_part*np.sum(num_part[subhalos])
+                    l = l+n
+    return l
 
 # -----------------------------------------------------
-# LOAD PIXEL MASK
-# -----------------------------------------------------
-
-if NSIDE > 1:
-	m_footprint = hp.fitsfunc.read_map(infile_footprint)
-else:
-	m_footprint = np.ones(12)
-
-# -----------------------------------------------------
-# LOAD SCALE FACTOR AND GROWTH RATE FROM COOSMOLOGY FILE
+# LOAD SCALE FACTOR AND GROWTH RATE FROM COSMOLOGY FILE
 # -----------------------------------------------------
 
 # Get linear growth rate for each redshift
@@ -188,13 +212,14 @@ merged_with = np.array([])
 num_part = np.array([])
 num_part_merged_with = np.array([])
 acc_red = np.array([])
-for i in range(num_files):
-	(groupid_temp, treeind_temp, merged_with_temp, num_part_temp, num_part_merged_with_temp, acc_red_temp) = np.loadtxt(dirname+history_file+file_ending[i], skiprows=15, unpack=True, usecols=(0,1,3,4,5,6))
-	groupid = np.concatenate((groupid, groupid_temp), axis=None)
-	treeind = np.concatenate((treeind, treeind_temp), axis=None)
-	merged_with = np.concatenate((merged_with, merged_with_temp), axis=None)
-	num_part = np.concatenate((num_part, num_part_temp), axis=None)
-	acc_red = np.concatenate((acc_red, acc_red_temp), axis=None)
+for i in tqdm(range(num_files)):
+    (groupid_temp, treeind_temp, merged_with_temp, num_part_temp, num_part_merged_with_temp, acc_red_temp) = np.loadtxt(dirname+history_file+file_ending[i], skiprows=15, unpack=True, usecols=(0,1,3,4,5,6))
+    groupid = np.concatenate((groupid, groupid_temp), axis=None)
+    treeind = np.concatenate((treeind, treeind_temp), axis=None)
+    merged_with = np.concatenate((merged_with, merged_with_temp), axis=None)
+    num_part = np.concatenate((num_part, num_part_temp), axis=None)
+    num_part_merged_with = np.concatenate((num_part_merged_with, num_part_merged_with_temp), axis=None)
+    acc_red = np.concatenate((acc_red, acc_red_temp), axis=None)
 
 n_groups = len(groupid)
 
@@ -221,7 +246,7 @@ def write_host_to_dict(sub_id_ind, host_linking):
 		write_host_to_dict(sub_id_ind, merged_with[one_up_id])
 
 # loop once through the history to prepare dict1 and dict2
-for id_ind, id_val in enumerate(groupid):
+for id_ind, id_val in tqdm(enumerate(groupid)):
 	host_link = merged_with[id_ind] # id within group of halo higher up
 	if host_link == -1: # check if it is a host
 		mainhost_id = id_ind # adapt the current host
@@ -280,7 +305,7 @@ n_halos = 0
 n_subhalos = 0
 n_all = 0
 
-for i in range(num_files):
+for i in tqdm(range(num_files)):
 	# ------------------------------
 	# LOAD ONE LIGHTCONE FILE
 	# ------------------------------
@@ -291,7 +316,7 @@ for i in range(num_files):
 	# calculate RA and DEC
 	r_calc_pin = np.sqrt(X**2 + Y**2 + Z**2) # radial distance
 	theta_calc_pin = np.arccos(Z/r_calc_pin) # theta
-	phi_calc_pin = np.arctan2(Y, x_pin) # phi
+	phi_calc_pin = np.arctan2(Y, X) # phi
 	ra = phi_calc_pin # RA
 	dec = np.pi/2. - theta_calc_pin # DEC
 	# APPLY MASK AND DEC LIMITS
@@ -301,8 +326,8 @@ for i in range(num_files):
 	haloid = haloid[spatial_mask]
 	redshift = redshift[spatial_mask]
 	X = X[spatial_mask]
-	Y = X[spatial_mask]
-	Z = X[spatial_mask]
+	Y = Y[spatial_mask]
+	Z = Z[spatial_mask]
 	# ------------------------------
 	# PREPARE HALO-SUBHALO ARRAY
 	# ------------------------------
@@ -336,7 +361,9 @@ for i in range(num_files):
 	# ------------------------------
 	# order by descending mass, along the 1st column, only first l rows
 	halo_subhalo_array_sorted = halo_subhalo_array[halo_subhalo_array[:,1].argsort()][::-1][:l,:]
-	np.savetxt(dirname + outfile_halos + file_ending + '.txt', halo_subhalo_array_sorted, fmt='%d %.8e %.8f %.8e %.8e %.8e %.8e %.8e %d %.8e %.8e %d')
+
+	np.savetxt(dirname + outfile_halos + file_ending[i] + '.txt', halo_subhalo_array_sorted, fmt='%d %.8e %.8f %.8e %.8e %.8e %.8e %.8e %d %.8e %.8e %d')
+
 	# ------------------------------
 	# CALCULATE 2D HISTOGRAMS
 	# ------------------------------
@@ -361,7 +388,4 @@ print('n_halos = ' + str(n_halos))
 print('n_subhalos = ' + str(n_subhalos))
 print('n_all = ' + str(n_all))
 print('outfile_halos: groupid, group mass [Msun], redshift of host, x, y, z of host [Mpc/h], mass of host minus masses of subhalos, mass of host, host?, delta_t, tdf, halo id of host')
-
-
-
 
