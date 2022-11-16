@@ -1,6 +1,6 @@
 # Description of the program:
-# extract mergers from merger history of PINOCCHIO, 
-# load the halo catalog (for multiple files of the halo lightcone), 
+# extract mergers from merger history of PINOCCHIO,
+# load the halo catalog (for multiple files of the halo lightcone),
 # apply a healpix mask, calculate the surviving subhalos
 # save the resulting halo-subhalo catalog (in seperate files)
 # and a 2D histogram (mass and redshift) for the halos and subhalos
@@ -10,9 +10,10 @@
 # last adapted: 14.11.2022
 # partially copied from: halo_subhalo_from_plc_hist_scatterinpos_new_6.py
 
-# ----------------------------------------------------
+# ------------------------------------------
 # IMPORTS
-# -----------------------------------------------------
+# ------------------------------------------
+
 
 print("Importing required libraries...")
 
@@ -22,6 +23,7 @@ import healpy as hp
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import re
 from tqdm import tqdm
 
 print("Done importing libraries.")
@@ -36,57 +38,136 @@ nfw_model = NFWProfile()
 # -----------------------------------------------------
 
 dirname = "/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/"
+
+pinocchio_output_filename = "/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
+
 RUN_FLAG = "luis" # Corresponds to "RunFlag" in PINOCCHIO parameter file. Name of the run being analyzed.
 
 cosmology_file = f'pinocchio.{RUN_FLAG}.cosmology.out'
 plc_file = f'pinocchio.{RUN_FLAG}.plc.out'
 history_file = f'pinocchio.{RUN_FLAG}.histories.out'
 
-# num_files corresponds to NumFiles in PINOCCHIO output file
-# Note that it may differ from the requested NumFiles in the input parameter file. PINOCCHIO requires that NumFiles divides NumTasks, and may change the NumFiles value if not.
-num_files = 2
-if num_files == 1:
-    file_ending = [""]
-else:
-    file_ending = [f".{i}" for i in range(num_files)]
-
 # Create output directory
-outfile_dir = './halo_subhalo_plc/'
+outfile_dir = "/cluster/home/lmachado/msc-thesis/simulations/halo_subhalo_plc/"
 if os.path.isdir(outfile_dir):
-    print(f"{outfile_dir} directory already exists")
+    print(f"{outfile_dir} directory already exists.")
 else:
-    print(f"Creating new output directory, {outfile_dir}")
+    print(f"Creating new output directory, {outfile_dir} ...")
     os.mkdir(outfile_dir)
+    print("Created output directory successfully.")
 
 outfile_halos = 'pinocchio_masked_halos_subhalos_plc'
 outfile_hist_halos = 'pinocchio_masked_halos_hist2D'
 outfile_hist_subhalos = 'pinocchio_masked_subhalos_hist2D'
 
-# Read following information from PINOCCHIO output file,
-# after running PINOCCHIO
-m_part = 3.85486e+11  # In Msun/h. Corresponds to "Particle Mass (Msun/h)"
-min_num_part = 10 # Corresponds to "MinHaloMass (particles)"
-num_rep = 67 # Number of replications. Found in line "The box will be replicated ... times to construct the PLC"
-z_min = 0.0 # Ending (lowest) redshift. Found in "The Past Light Cone will be reconstruct from z=... to z=..."
-z_max = 0.5 # Starting (highest) redshift. Found in "The Past Light Cone will be reconstruct from z=... to z=..."
+# ------------------------------------------
+# MASKING CONFIGURATION
+# ------------------------------------------
 
-# Provide mask used to filter out regions wherein to find subhalos
-# TODO change this to accept mask as npy array
-# TODO for now, setting NSIDE to 1 bypasses the mask
-infile_footprint = '/cluster/work/refregier/bernerp/DES/DES_Y1/y1a1_gold_1.0.2_wide_footprint_4096.fit' # NSIDE = 4096
+# Decide which HEALPix ordering to use
+# Set NEST = False for RING, NEST = True for NEST
+NEST = True
+
+# Provide mask used to filter regions in which to find subhalos
+# Mask should be a HEALPix map,
+# with desired pixel IDs having a value > MASK_CUTOFF_VALUE,
+# and undesired pixel IDs having a value <= MASK_CUTOFF_VALUE
+# E.g. an array with 0s and 1s could use a cutoff value of 0
+MASK_CUTOFF_VALUE = 0
+
+# We support an additional masking based on a declination range.
+# If this feature is not desired, set dec_min = -90 and dec_max = 90
 dec_min = -90
 dec_max = 90
-NSIDE = 1
 
-# TODO change this whole code to support RING or NEST formats
-NEST = False
+# Path to file containing mask array as a HEALPix map
+# If no mask is desired, set the filename to None, and the full-sky data will be included in the analysis
+infile_footprint = "/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy"
 
-# LOAD PIXEL MASK
-if NSIDE > 1:
-    # TODO add code to determine NSIDE from the provided mask
-    m_footprint = hp.fitsfunc.read_map(infile_footprint)
+# Set a default NSIDE and NPIX and a full-sky mask, in case there is no valid input mask
+NSIDE = 64
+NPIX = hp.pixelfunc.nside2npix(NSIDE)
+m_footprint = np.ones(NPIX)
+
+# Load pixel mask, if any is provided
+if infile_footprint is not None:
+    print(f"Loading mask from {infile_footprint}...")
+
+    if infile_footprint.endswith(".fit"):
+        m_footprint = hp.fitsfunc.read_map(infile_footprint, nest=NEST)
+    elif infile_footprint.endswith(".npy"):
+        with open(infile_footprint, "rb") as f:
+            m_footprint = np.load(f)
+    else:
+        print(f"WARNING: Invalid file format for HEALPix mask file {infile_footprint}. Using a full-sky mask instead.")
+
+    # Determine NSIDE, NPIX from provided map
+    NSIDE = hp.get_nside(m_footprint)
+    NPIX = len(m_footprint)
+    assert hp.pixelfunc.nside2npix(NSIDE) == NPIX
+
+    print("Finished loading mask.")
 else:
-    m_footprint = np.ones(12)
+    print("No mask file provided. Will use default full-sky mask instead.")
+
+# ------------------------------------------
+# BEGINNING OF SUBHALO CODE.
+# NO NEED TO MODIFY BELOW THIS LINE.
+# ------------------------------------------
+
+# Read following information from PINOCCHIO output file,
+# after running PINOCCHIO
+def read_pinocchio_config_details():
+    with open(pinocchio_output_filename, 'r') as f:
+        text = f.read()
+
+    # num_files corresponds to NumFiles in PINOCCHIO output file
+    # Note that it may differ from the requested NumFiles in the input parameter file. PINOCCHIO requires that NumFiles divides NumTasks, and may change the NumFiles value if not.
+    num_files = int(
+        re.search("NumFiles\s+(\d+)\n", text).groups()[0]
+    )
+    m_part = float(
+        re.search("Particle Mass \(Msun/h\)\s+(.+)\n", text).groups()[0]
+    )
+    min_num_part = int(
+        re.search("MinHaloMass \(particles\)\s+(\d+)\n", text).groups()[0]
+    )
+    num_rep = int(
+        re.search("The box will be replicated (\d+) times to construct the PLC\n", text).groups()[0]
+    )
+    z_max, z_min = (
+        float(i)
+        for i in re.search("The Past Light Cone will be reconstruct from z=(.+) to z=(.+)\n", text).groups()
+    )
+    omega_l = float(
+        re.search("OmegaLambda\s+(.+)\n", text).groups()[0]
+    )
+    omega_m = float(
+        re.search("Omega0\s+(.+)\n", text).groups()[0]
+    )
+    H0 = 100 * float(
+        re.search("Hubble100\s+(.+)\n", text).groups()[0]
+    )
+
+    return (
+        num_files,
+        m_part,
+        min_num_part,
+        num_rep,
+        z_min,
+        z_max,
+        omega_l,
+        omega_m,
+        H0,
+    )
+
+num_files, m_part, min_num_part, num_rep, z_min, z_max, omega_l, omega_m, H0 = read_pinocchio_config_details()
+
+# Determine file endings based on number of catalog files
+if num_files == 1:
+    file_ending = [""]
+else:
+    file_ending = [f".{i}" for i in range(num_files)]
 
 # binning settings for 2D histograms
 num_z_bins = 150
@@ -110,20 +191,13 @@ print('z_max = ' + str(z_max))
 print('NSIDE = ' + str(NSIDE))
 print('dec_min = ' + str(dec_min))
 print('dec_max = ' + str(dec_max))
-print('infile_footprint = ' + infile_footprint)
+print('infile_footprint = ' + str(infile_footprint))
 print('for 2D histograms: num_z_bins = ' + str(num_z_bins))
 print('for 2D histograms: num_mass_bins = ' + str(num_mass_bins))
 
 # -----------------------------------------------------
 # SPECIFICATIONS FOR THE USED COSMOLOGY
 # -----------------------------------------------------
-# THIS IS A SECTION THAT NEEDS TO BE ADAPTED EACH TIME!
-# -----------------------------------------------------
-
-omega_l = 0.7 # Corresponds to "OmegaLambda" in output file
-omega_m = 0.3 # Corresponds to "Omega0" in output file
-H0 = 70. # Hubble constant in km/(s*Mpc). Corresponds to 100 * value of "Hubble100" in output file
-
 H0_1 = 1./(H0/(3.09e19))/(3.15576e16) # inverse of hubble constant in Gyr
 t_dyn_0 = 0.1*H0_1 # dynamical time, using H0 instead of H(z)
 
@@ -306,74 +380,79 @@ n_subhalos = 0
 n_all = 0
 
 for i in tqdm(range(num_files)):
-	# ------------------------------
-	# LOAD ONE LIGHTCONE FILE
-	# ------------------------------
-	(M, haloid, redshift, X, Y, Z) = np.loadtxt(dirname+plc_file+file_ending[i], unpack=True, usecols=(8,0,1,2,3,4))
-	# ------------------------------
-	# APPLY PIXEL MASK and DEC LIMITS
-	# ------------------------------
-	# calculate RA and DEC
-	r_calc_pin = np.sqrt(X**2 + Y**2 + Z**2) # radial distance
-	theta_calc_pin = np.arccos(Z/r_calc_pin) # theta
-	phi_calc_pin = np.arctan2(Y, X) # phi
-	ra = phi_calc_pin # RA
-	dec = np.pi/2. - theta_calc_pin # DEC
-	# APPLY MASK AND DEC LIMITS
-	pix_halos = hp.ang2pix(nside=NSIDE, theta=ra, phi=dec, lonlat=True)
-	spatial_mask = (m_footprint[pix_halos] > -1) & (dec >= dec_min) & (dec <= dec_max)
-	M = M[spatial_mask]
-	haloid = haloid[spatial_mask]
-	redshift = redshift[spatial_mask]
-	X = X[spatial_mask]
-	Y = Y[spatial_mask]
-	Z = Z[spatial_mask]
-	# ------------------------------
-	# PREPARE HALO-SUBHALO ARRAY
-	# ------------------------------
-	l = len(haloid)
-	halo_subhalo_array = np.zeros((l*3,12))
-	halo_subhalo_array[:l,0] = haloid # column 0: ID of halo itself
-	halo_subhalo_array[:l,1] = M # column 1: Mass of halo or subhalo itself
-	halo_subhalo_array[:l,2] = redshift # column 2: Redshift of halo (for subhalos: redshift of host)
-	halo_subhalo_array[:l,3] = X # column 3, 4, 5: position of halo
-	halo_subhalo_array[:l,4] = Y
-	halo_subhalo_array[:l,5] = Z
-	halo_subhalo_array[:l,6] = M # column 6: Mass of halo minus mass of its subhalos
-	# column 7: Mass of the halos host (for hosts: 0)
-	halo_subhalo_array[:l,8] = np.ones(l) # column 8: 1 for hosts, 0 for subhalos
-	# column 9: delta_t (for hosts: 0)
-	# column 10: tdf (for hosts: 0)
-	# column 11: ID of host (for hosts: 0)
-	n_halos += l
-	# ------------------------------
-	# CALCULATE GROWTH RATE FROM Z
-	# ------------------------------
-	growth_rate = np.interp(redshift, redshift_sorted, growth_rate_sorted)
-	# ------------------------------
-	# RUN INNER LOOP OVER HALOS
-	# ------------------------------
-	l = loop_dict(l)
-	n_subhalos += (l - len(haloid))
-	n_all += l
-	# ------------------------------
-	# SAVE HALO-SUBHALO ARRAY TO FILE
-	# ------------------------------
-	# order by descending mass, along the 1st column, only first l rows
-	halo_subhalo_array_sorted = halo_subhalo_array[halo_subhalo_array[:,1].argsort()][::-1][:l,:]
+    # ------------------------------
+    # LOAD ONE LIGHTCONE FILE
+    # ------------------------------
+    (M, haloid, redshift, X, Y, Z) = np.loadtxt(dirname+plc_file+file_ending[i], unpack=True, usecols=(8,0,1,2,3,4))
+    # ------------------------------
+    # APPLY PIXEL MASK and DEC LIMITS
+    # ------------------------------
+    # calculate RA and DEC
+    r_calc_pin = np.sqrt(X**2 + Y**2 + Z**2) # radial distance
+    theta_calc_pin = np.arccos(Z/r_calc_pin) # theta
+    phi_calc_pin = np.arctan2(Y, X) # phi
 
-	np.savetxt(dirname + outfile_halos + file_ending[i] + '.txt', halo_subhalo_array_sorted, fmt='%d %.8e %.8f %.8e %.8e %.8e %.8e %.8e %d %.8e %.8e %d')
+    # Note that phi is in range [-pi, pi], but for healpy, must be in range [0, 360 degrees]
+    phi_calc_pin[phi_calc_pin < 0] += 2 * np.pi
 
-	# ------------------------------
-	# CALCULATE 2D HISTOGRAMS
-	# ------------------------------
-	hist_z_mass_halos_temp, bin_edges_z, bin_edges_mass = np.histogram2d(redshift, M, bins=(bin_edges_z, bin_edges_mass))
-	hist_z_mass_subs_temp, bin_edges_z, bin_edges_mass = np.histogram2d(halo_subhalo_array[len(haloid):l,2], halo_subhalo_array[len(haloid):l,1], bins=(bin_edges_z, bin_edges_mass))
-	# ------------------------------
-	# ADD 2D HISTOGRAMS UP
-	# ------------------------------
-	hist_z_mass_halos += hist_z_mass_halos_temp
-	hist_z_mass_subs += hist_z_mass_subs_temp
+    ra = np.degrees(phi_calc_pin) # RA
+    dec = np.degrees(np.pi/2 - theta_calc_pin)
+
+    # APPLY MASK AND DEC LIMITS
+    pix_halos = hp.ang2pix(NSIDE, ra, dec, lonlat=True, nest=NEST)
+    spatial_mask = (m_footprint[pix_halos] > MASK_CUTOFF_VALUE) & (dec >= dec_min) & (dec <= dec_max)
+    M = M[spatial_mask]
+    haloid = haloid[spatial_mask]
+    redshift = redshift[spatial_mask]
+    X = X[spatial_mask]
+    Y = Y[spatial_mask]
+    Z = Z[spatial_mask]
+    # ------------------------------
+    # PREPARE HALO-SUBHALO ARRAY
+    # ------------------------------
+    l = len(haloid)
+    halo_subhalo_array = np.zeros((l*3,12))
+    halo_subhalo_array[:l,0] = haloid # column 0: ID of halo itself
+    halo_subhalo_array[:l,1] = M # column 1: Mass of halo or subhalo itself
+    halo_subhalo_array[:l,2] = redshift # column 2: Redshift of halo (for subhalos: redshift of host)
+    halo_subhalo_array[:l,3] = X # column 3, 4, 5: position of halo
+    halo_subhalo_array[:l,4] = Y
+    halo_subhalo_array[:l,5] = Z
+    halo_subhalo_array[:l,6] = M # column 6: Mass of halo minus mass of its subhalos
+    # column 7: Mass of the halos host (for hosts: 0)
+    halo_subhalo_array[:l,8] = np.ones(l) # column 8: 1 for hosts, 0 for subhalos
+    # column 9: delta_t (for hosts: 0)
+    # column 10: tdf (for hosts: 0)
+    # column 11: ID of host (for hosts: 0)
+    n_halos += l
+    # ------------------------------
+    # CALCULATE GROWTH RATE FROM Z
+    # ------------------------------
+    growth_rate = np.interp(redshift, redshift_sorted, growth_rate_sorted)
+    # ------------------------------
+    # RUN INNER LOOP OVER HALOS
+    # ------------------------------
+    l = loop_dict(l)
+    n_subhalos += (l - len(haloid))
+    n_all += l
+    # ------------------------------
+    # SAVE HALO-SUBHALO ARRAY TO FILE
+    # ------------------------------
+    # order by descending mass, along the 1st column, only first l rows
+    halo_subhalo_array_sorted = halo_subhalo_array[halo_subhalo_array[:,1].argsort()][::-1][:l,:]
+
+    np.savetxt(dirname + outfile_halos + file_ending[i] + '.txt', halo_subhalo_array_sorted, fmt='%d %.8e %.8f %.8e %.8e %.8e %.8e %.8e %d %.8e %.8e %d')
+
+    # ------------------------------
+    # CALCULATE 2D HISTOGRAMS
+    # ------------------------------
+    hist_z_mass_halos_temp, bin_edges_z, bin_edges_mass = np.histogram2d(redshift, M, bins=(bin_edges_z, bin_edges_mass))
+    hist_z_mass_subs_temp, bin_edges_z, bin_edges_mass = np.histogram2d(halo_subhalo_array[len(haloid):l,2], halo_subhalo_array[len(haloid):l,1], bins=(bin_edges_z, bin_edges_mass))
+    # ------------------------------
+    # ADD 2D HISTOGRAMS UP
+    # ------------------------------
+    hist_z_mass_halos += hist_z_mass_halos_temp
+    hist_z_mass_subs += hist_z_mass_subs_temp
 
 # -----------------------------------------------------
 # SAVE 2D HISTOGRAMS
