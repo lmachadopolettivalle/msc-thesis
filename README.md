@@ -17,3 +17,5 @@
 	- gcc/4.8.5
 	- python/3.7.4 (or maybe even higher could work)
 	- openmpi/4.1.4
+
+For the subhalo extraction code, need hdf5 via `module load hdf5/1.10.7`, which enables usage of `h5py`.
