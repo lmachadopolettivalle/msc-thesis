@@ -6,8 +6,9 @@
 # and a 2D histogram (mass and redshift) for the halos and subhalos
 
 # Author: Pascale Berner
+# Co-Author: Luis Machado
 # first written: 04.11.2022
-# last adapted: 14.11.2022
+# last adapted: 17.11.2022
 # partially copied from: halo_subhalo_from_plc_hist_scatterinpos_new_6.py
 
 # ------------------------------------------
@@ -85,7 +86,7 @@ dec_max = 90
 infile_footprint = "/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy"
 
 # Set a default NSIDE and NPIX and a full-sky mask, in case there is no valid input mask
-NSIDE = 64
+NSIDE = 1
 NPIX = hp.pixelfunc.nside2npix(NSIDE)
 m_footprint = np.ones(NPIX)
 
