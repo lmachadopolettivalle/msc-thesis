@@ -20,6 +20,7 @@ halotools
 
 # PyCosmo, UFig, UCat
 six
+dask
 recfast4py
 cython
 dill

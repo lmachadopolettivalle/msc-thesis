@@ -18,4 +18,7 @@
 	- python/3.7.4 (or maybe even higher could work)
 	- openmpi/4.1.4
 
-For the subhalo extraction code, need hdf5 via `module load hdf5/1.10.7`, which enables usage of `h5py`.
+- For the subhalo extraction code, need hdf5 via `module load hdf5/1.10.7`, which enables usage of `h5py`.
+
+- For the galaxy sampling methods, need to install PyCosmo (`https://cosmo-gitlab.phys.ethz.ch/cosmo/PyCosmo`, branch `published`), UCat (`https://cosmo-gitlab.phys.ethz.ch/cosmo/ucat`) and UFig (`https://cosmo-gitlab.phys.ethz.ch/cosmo/ufig`). The `requirements.txt` covers these installations, but the repositories need to be cloned beforehand.
+	- Note a current issue with UFig, which requires `ivy-wfengine>=0.3.1` but no such version exists. TO solve this, we modify the `setup.py` file within UFig to require `ivy-wfengine` instead of `ivy-wfengine>=0.3.1`.
