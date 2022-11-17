@@ -5,7 +5,7 @@ RunFlag                luis      % name of the run
 OutputList             /cluster/home/lmachado/msc-thesis/simulations/redshifts_for_outputs      % name of file with required output redshifts
 BoxSize                500.0        % physical size of the box in Mpc
 BoxInH100                           % specify that the box is in Mpc/h
-GridSize               300         % number of grid points per side
+GridSize               2048         % number of grid points per side
 RandomSeed             486604       % random seed for initial conditions
 
 # cosmology
@@ -33,7 +33,7 @@ MaxMemPerParticle      1000000      % max available memory in bytes per particle
 # output
 CatalogInAscii                      % catalogs are written in ascii and not in binary format
 OutputInH100                        % units are in H=100 instead of the true H value
-NumFiles               3            % number of files in which each catalog is written
+NumFiles               24           % number of files in which each catalog is written
 MinHaloMass            10           % smallest halo that is given in output
 AnalyticMassFunction   9            % form of analytic mass function given in the .mf.out files
 
