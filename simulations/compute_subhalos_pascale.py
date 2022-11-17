@@ -245,7 +245,7 @@ Nmin = 0.
 # output of loop: l=number of halos and subhalos combined
 #@profile
 def loop_dict(l):
-    for i in tqdm(range(l)):
+    for i in range(l):
         subs = np.array(subs_dict[haloid[i]])
         if len(subs) != 0:
             factor = 1.0
@@ -287,7 +287,7 @@ merged_with = np.array([])
 num_part = np.array([])
 num_part_merged_with = np.array([])
 acc_red = np.array([])
-for i in tqdm(range(num_files)):
+for i in range(num_files):
     (groupid_temp, treeind_temp, merged_with_temp, num_part_temp, num_part_merged_with_temp, acc_red_temp) = np.loadtxt(dirname+history_file+file_ending[i], skiprows=15, unpack=True, usecols=(0,1,3,4,5,6))
     groupid = np.concatenate((groupid, groupid_temp), axis=None)
     treeind = np.concatenate((treeind, treeind_temp), axis=None)
@@ -321,7 +321,7 @@ def write_host_to_dict(sub_id_ind, host_linking):
 		write_host_to_dict(sub_id_ind, merged_with[one_up_id])
 
 # loop once through the history to prepare dict1 and dict2
-for id_ind, id_val in tqdm(enumerate(groupid)):
+for id_ind, id_val in enumerate(groupid):
 	host_link = merged_with[id_ind] # id within group of halo higher up
 	if host_link == -1: # check if it is a host
 		mainhost_id = id_ind # adapt the current host
@@ -380,7 +380,7 @@ n_halos = 0
 n_subhalos = 0
 n_all = 0
 
-for i in tqdm(range(num_files)):
+for i in range(num_files):
     # ------------------------------
     # LOAD ONE LIGHTCONE FILE
     # ------------------------------
