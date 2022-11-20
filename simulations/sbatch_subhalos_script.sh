@@ -7,4 +7,4 @@
 #SBATCH -e /cluster/home/lmachado/msc-thesis/simulations/subhalos_error
 #SBATCH --mail-type=FAIL
 
-/cluster/home/lmachado/venv/bin/python compute_subhalos_pascale.py
+/cluster/home/lmachado/venv/bin/python compute_subhalos_from_pinocchio.py
