@@ -322,8 +322,6 @@ y_coord = np.array([])
 z_coord = np.array([])
 host_sub_index = np.array([])
 
-# TODO understand meaning of host_sub. The code below assumes it is either 0 or 1 (when computing number of galaxies using np.sum(), BUT the values are not 0 or 1. Maybe should not loadtxt using column -1?
-
 n_uncut = 0
 n_blue_uncut = 0
 # ----------------------------------------------------–
@@ -333,7 +331,7 @@ for i in range(num_files):
 	# ----------------------------------------------------–
 	# LOAD HALO-SUBHALO FILE
 	# -----------------------------------------------------
-	mass, z_pin, x_coord_pin, y_coord_pin, z_coord_pin, host_sub = np.loadtxt(infile_halos_dir + infile_halos + file_ending[i] + '.txt', usecols=(1,2,3,4,5,-1), unpack=True)
+	mass, z_pin, x_coord_pin, y_coord_pin, z_coord_pin, host_sub = np.loadtxt(infile_halos_dir + infile_halos + file_ending[i] + '.txt', usecols=(1,2,3,4,5,8), unpack=True)
 	# ----------------------------------------------------–
 	# DIVIDE HALOS AND SUBHALOS INTO RED AND BLUE
 	# -----------------------------------------------------
