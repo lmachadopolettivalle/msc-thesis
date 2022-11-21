@@ -22,6 +22,7 @@ import os
 import PyCosmo
 import re
 import scipy.integrate
+from sham_model_constants import *
 from ucat import galaxy_sampling_util, io_util
 from ucat.galaxy_population_models import galaxy_luminosity_function
 
@@ -68,33 +69,6 @@ DEFAULT_PIXAREA = 0.1 * 4 * np.pi # 10% of the sky
 # If this feature is not desired, set dec_min to -90 and dec_max to 90
 dec_min = 30
 dec_max = 90
-
-# ----------------------------------------------------
-# OTHER PARAMETERS
-# -----------------------------------------------------
-lum_fct_z_res = 0.001
-lum_fct_m_res = 0.001 
-
-lum_fct_alpha_blue = -1.3            
-lum_fct_alpha_red = -0.5
-
-lum_fct_m_star_blue_slope = -0.9408582               # Parameter a in M*(z) = a*z + b for blue galaxies, M*: Schechter parameter
-lum_fct_m_star_blue_intcpt = -20.40492365            # Parameter b in M*(z) = a*z + b for blue galaxies, M*: Schechter parameter
-lum_fct_m_star_red_slope = -0.70798041               # Parameter a in M*(z) = a*z + b for red galaxies, M*: Schechter parameter
-lum_fct_m_star_red_intcpt = -20.37196157             # Parameter b in M*(z) = a*z + b for red galaxies, M*: Schechter parameter
-lum_fct_phi_star_blue_amp = 0.00370253               # Parameter a in phi*(z) = a * exp(bz) for blue galaxies, phi*: Schechter parameter
-lum_fct_phi_star_blue_exp = -0.10268436              # Parameter b in phi*(z) = a * exp(bz) for blue galaxies, phi*: Schechter parameter
-lum_fct_phi_star_red_amp = 0.0035097                 # Parameter a in phi*(z) = a * exp(bz) for red galaxies, phi*: Schechter parameter
-lum_fct_phi_star_red_exp = -0.70596888               # Parameter b in phi*(z) = a * exp(bz) for red galaxies, phi*: Schechter parameter
-
-m_star_par_blue = (lum_fct_m_star_blue_slope, 
-                   lum_fct_m_star_blue_intcpt)
-m_star_par_red = (lum_fct_m_star_red_slope,
-                  lum_fct_m_star_red_intcpt)
-phi_star_par_blue = (lum_fct_phi_star_blue_amp,
-                     lum_fct_phi_star_blue_exp)
-phi_star_par_red = (lum_fct_phi_star_red_amp,
-                    lum_fct_phi_star_red_exp)
 
 # ----------------------------------------------------
 # NO NEED TO MODIFY BELOW THIS LINE.
