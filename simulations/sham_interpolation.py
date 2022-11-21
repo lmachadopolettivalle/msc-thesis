@@ -236,12 +236,8 @@ num_mass_bins = len(bin_edges_mass) - 1
 idx_lim = (np.abs(bin_edges_mass - M_limit)).argmin()
 M_limit_effective = bin_edges_mass[idx_lim]
 
-# TODO changed this. The original code is commented out, and it was giving a mask_hist array that is one too long.
-# TODO also, I changed zeros and ones, since red galaxies go onto massive halos. Double check this.
-#mask_hist_red = np.concatenate((np.ones(idx_lim+1), np.zeros(num_mass_bins-idx_lim)))
-#mask_hist_blue = np.concatenate((np.zeros(idx_lim+1), np.ones(num_mass_bins-idx_lim)))
-mask_hist_red = np.concatenate((np.zeros(idx_lim), np.ones(num_mass_bins-idx_lim)))
-mask_hist_blue = np.concatenate((np.ones(idx_lim), np.zeros(num_mass_bins-idx_lim)))
+mask_hist_red = np.concatenate((np.zeros(idx_lim+1), np.ones(num_mass_bins-idx_lim-1)))
+mask_hist_blue = np.concatenate((np.ones(idx_lim+1), np.zeros(num_mass_bins-idx_lim-1)))
 
 
 hist_z_mass_blue = hist_z_mass_halos * mask_hist_blue
