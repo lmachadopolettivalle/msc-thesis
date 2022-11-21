@@ -39,10 +39,14 @@ RED = 0
 # Configuration and cosmology parameters
 m_max = -12
 
-# File path names
-pinocchio_output_filename = "/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
+# Cube root of number of particles used.
+# This is present in the paths to different input files used in this script.
+particle_count_pinocchio = 512
 
-outfile_dir = "/cluster/home/lmachado/msc-thesis/simulations/outputs_sampling/"
+# File path names
+pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
+
+outfile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/outputs_sampling/"
 
 outfile_name = "sampled_BASS"
 

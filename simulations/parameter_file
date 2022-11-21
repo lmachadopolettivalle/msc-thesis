@@ -5,7 +5,7 @@ RunFlag                luis      % name of the run
 OutputList             /cluster/home/lmachado/msc-thesis/simulations/plc_desired_redshifts      % name of file with required output redshifts
 BoxSize                500.0        % physical size of the box in Mpc
 BoxInH100                           % specify that the box is in Mpc/h
-GridSize               1024         % number of grid points per side
+GridSize               512         % number of grid points per side
 RandomSeed             486604       % random seed for initial conditions
 
 # cosmology

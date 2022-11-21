@@ -1,4 +1,4 @@
-cd /cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/
+cd /cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/512cubed/
 
 sbatch /cluster/home/lmachado/msc-thesis/simulations/sbatch_pinocchio_script.sh
 

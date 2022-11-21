@@ -38,9 +38,15 @@ nfw_model = NFWProfile()
 # THIS IS A SECTION THAT NEEDS TO BE ADAPTED EACH TIME!
 # -----------------------------------------------------
 
-dirname = "/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/"
+# Cube root of number of particles used.
+# This is present in the paths to different input files used in this script.
+particle_count_pinocchio = 512
 
-pinocchio_output_filename = "/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
+# Directory containing PINOCCHIO outputs.
+# This is where the subhalo catalog will also be saved at the end of this script.
+dirname = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/"
+
+pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
 
 RUN_FLAG = "luis" # Corresponds to "RunFlag" in PINOCCHIO parameter file. Name of the run being analyzed.
 
@@ -49,7 +55,7 @@ plc_file = f'pinocchio.{RUN_FLAG}.plc.out'
 history_file = f'pinocchio.{RUN_FLAG}.histories.out'
 
 # Create output directory
-outfile_dir = "/cluster/home/lmachado/msc-thesis/simulations/halo_subhalo_plc/"
+outfile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/halo_subhalo_plc/"
 if os.path.isdir(outfile_dir):
     print(f"{outfile_dir} directory already exists.")
 else:
