@@ -36,7 +36,7 @@ print("Done importing libraries.")
 # -----------------------------------------------------
 # Cube root of number of particles used.
 # This is present in the paths to different input files used in this script.
-particle_count_pinocchio = 512
+particle_count_pinocchio = 2048
 
 pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
 

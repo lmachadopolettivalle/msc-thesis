@@ -40,7 +40,7 @@ nfw_model = NFWProfile()
 
 # Cube root of number of particles used.
 # This is present in the paths to different input files used in this script.
-particle_count_pinocchio = 512
+particle_count_pinocchio = 2048
 
 # Directory containing PINOCCHIO outputs.
 # This is where the subhalo catalog will also be saved at the end of this script.
