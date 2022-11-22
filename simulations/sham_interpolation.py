@@ -75,8 +75,24 @@ output_interp_blue = 'blue_lim_interp.npz'
 M_limit = 8.e12 # mass limit for assigning blue or red galaxies to halos, [Msun/h]
 
 # apparent magnitude limits, in the main band (typically i or r)
-gals_mag_max = 20.
-gals_mag_min = 10.
+BAND_USED_FOR_MAG_CUTS = "r"
+gals_mag_max = 19.5
+gals_mag_min = 10
+
+# Desired filters
+# NOTE that the filter lum_fct_filter_band (defined in the other .py script)
+# is added to this list, to work well with the luminosity function
+desired_filters = {
+    "g": "BASSMzLS_g",
+    "r": "BASSMzLS_r",
+    "z": "BASSMzLS_z",
+}
+
+# ----------------------------------------------------
+# NO NEED TO MODIFY BELOW THIS LINE
+# -----------------------------------------------------
+# Add the luminosity function-related filter to the list of desired filters
+loop_filter_names = [lum_fct_filter_band] + list(desired_filters.values())
 
 # ----------------------------------------------------
 # SET PYCOSMO COSMOLOGY
@@ -203,9 +219,8 @@ class MagCalculatorTable(object):
 # DEFINE MAGNITUDE CALCULATOR
 
 MAGNITUDES_CALCULATOR = {'table': MagCalculatorTable}
-loop_filter_names = [lum_fct_filter_band, 'DECam_r', 'DECam_g', 'DECam_z', 'DECam_i', 'DECam_Y']
-filter_wavelengths = io_util.load_from_hdf5(filters_file_name, [loop_filter_names[i]+'/lam' for i in range(len(loop_filter_names))], root_path=maps_remote_dir)
-filter_amplitudes = io_util.load_from_hdf5(filters_file_name, [loop_filter_names[i]+'/amp' for i in range(len(loop_filter_names))], root_path=maps_remote_dir)
+filter_wavelengths = io_util.load_from_hdf5(filters_file_name, [i+'/lam' for i in loop_filter_names], root_path=maps_remote_dir)
+filter_amplitudes = io_util.load_from_hdf5(filters_file_name, [i+'/amp' for i in loop_filter_names], root_path=maps_remote_dir)
 filter_lam = {loop_filter_names[i]: filter_wavelengths[i] for i in range(len(loop_filter_names))}
 filter_amp = {loop_filter_names[i]: filter_amplitudes[i] for i in range(len(loop_filter_names))}
 
@@ -248,7 +263,6 @@ M_limit_effective = bin_edges_mass[idx_lim]
 
 mask_hist_red = np.concatenate((np.zeros(idx_lim+1), np.ones(num_mass_bins-idx_lim-1)))
 mask_hist_blue = np.concatenate((np.ones(idx_lim+1), np.zeros(num_mass_bins-idx_lim-1)))
-
 
 hist_z_mass_blue = hist_z_mass_halos * mask_hist_blue
 hist_z_mass_red = hist_z_mass_halos * mask_hist_red + hist_z_mass_subs
@@ -317,11 +331,12 @@ z_edges_stacked = np.reshape(np.ndarray.flatten(np.transpose(np.tile(bin_edges_z
 z = np.array([])
 abs_mag = np.array([])
 blue_red = np.array([])
-app_mag_g = np.array([])
-app_mag_r = np.array([])
-app_mag_i = np.array([])
-app_mag_z = np.array([])
-app_mag_Y = np.array([])
+
+app_mag_dict = {
+    k: np.array([])
+    for k in desired_filters.keys()
+}
+
 halo_mass = np.array([])
 x_coord = np.array([])
 y_coord = np.array([])
@@ -334,94 +349,97 @@ n_blue_uncut = 0
 # LOOP OVER HALO-SUBHALO FILES
 # -----------------------------------------------------
 for i in range(num_files):
-	# ----------------------------------------------------–
-	# LOAD HALO-SUBHALO FILE
-	# -----------------------------------------------------
-	mass, z_pin, x_coord_pin, y_coord_pin, z_coord_pin, host_sub = np.loadtxt(infile_halos_dir + infile_halos + file_ending[i] + '.txt', usecols=(1,2,3,4,5,8), unpack=True)
-	# ----------------------------------------------------–
-	# DIVIDE HALOS AND SUBHALOS INTO RED AND BLUE
-	# -----------------------------------------------------
-	mask_red = (host_sub < 0.5) | (mass > M_limit_effective)
-	mask_blue = ~ mask_red
-	n_blue = len(z_pin[mask_blue])
+    # ----------------------------------------------------–
+    # LOAD HALO-SUBHALO FILE
+    # -----------------------------------------------------
+    mass, z_pin, x_coord_pin, y_coord_pin, z_coord_pin, host_sub = np.loadtxt(infile_halos_dir + infile_halos + file_ending[i] + '.txt', usecols=(1,2,3,4,5,8), unpack=True)
+    # ----------------------------------------------------–
+    # DIVIDE HALOS AND SUBHALOS INTO RED AND BLUE
+    # -----------------------------------------------------
+    mask_red = (host_sub < 0.5) | (mass > M_limit_effective)
+    mask_blue = ~ mask_red
+    n_blue = len(z_pin[mask_blue])
 
-	n_blue_uncut += n_blue
-	n_uncut += len(z_pin)
-	# ----------------------------------------------------–
-	# GET ABSOLUTE MAGNITUDES FOR NEW GALAXIES
-	# -----------------------------------------------------
-	abs_mag_red_pin = griddata((z_edges_stacked, np.log10(mass_edges_stacked)), np.ndarray.flatten(lim_abs_mag_red), (z_pin[mask_red], np.log10(mass[mask_red])))
-	abs_mag_blue_pin = griddata((z_edges_stacked, np.log10(mass_edges_stacked)), np.ndarray.flatten(lim_abs_mag_blue), (z_pin[mask_blue], np.log10(mass[mask_blue])))
-	# ----------------------------------------------------–
-	# APPEND RED AND BLUE GALAXIES
-	# -----------------------------------------------------
-	z_temp = np.append(z_pin[mask_blue], z_pin[mask_red])
-	abs_mag_temp = np.append(abs_mag_blue_pin, abs_mag_red_pin)
-	blue_red_temp = np.ones_like(z_temp, dtype=np.int16)
-	blue_red_temp[n_blue:] = 0
-	halo_mass_temp = np.append(mass[mask_blue], mass[mask_red])
-	x_coord_temp = np.append(x_coord_pin[mask_blue], x_coord_pin[mask_red])
-	y_coord_temp = np.append(y_coord_pin[mask_blue], y_coord_pin[mask_red])
-	z_coord_temp = np.append(z_coord_pin[mask_blue], z_coord_pin[mask_red])
-	host_sub_index_temp = np.append(host_sub[mask_blue], host_sub[mask_red])
-	# ----------------------------------------------------–
-	# CALCULATE TEMPLATE COEFFICIENTS
-	# -----------------------------------------------------
-	# Draw template coefficients
-	template_coeffs = np.empty((len(z_temp), n_templates))
-	template_coeffs[:n_blue] = galaxy_sed.sample_template_coeff_dirichlet(z_pin[mask_blue], template_coeff_alpha0_blue, template_coeff_alpha1_blue, template_coeff_z1_blue, template_coeff_weight_blue)
-	template_coeffs[n_blue:] = galaxy_sed.sample_template_coeff_dirichlet(z_pin[mask_red], template_coeff_alpha0_red, template_coeff_alpha1_red, template_coeff_z1_red, template_coeff_weight_red)
-	# Calculate absolute magnitudes according to coefficients and adjust coefficients according to drawn magnitudes
-	template_coeffs *= np.expand_dims(10 ** (0.4 * (mag_calc(np.zeros_like(z_temp), np.zeros_like(z_temp), template_coeffs, [lum_fct_filter_band])[lum_fct_filter_band] - abs_mag_temp)), -1)
- 	# Transform to apparent coefficients
-	lum_dist = galaxy_sampling_util.apply_pycosmo_distfun(cosmo.background.dist_lum_a, z_temp)
-	template_coeffs *= np.expand_dims((10e-6 / lum_dist) ** 2 / (1 + z_temp), -1)
-	# ----------------------------------------------------–
-	# SET EXTINCTION MAP
-	# -----------------------------------------------------
-	# I'm setting them to zero, since I'm ignoring extinction values, as I don't have pixel coordinates
-	excess_b_v = np.zeros(len(z_temp))
-	# ----------------------------------------------------–
-	# CALCULATE APPARENT MAGNITUDES
-	# -----------------------------------------------------
-	app_mag_g_temp = mag_calc(z_temp, excess_b_v, template_coeffs, ['DECam_g'])['DECam_g']
-	app_mag_r_temp = mag_calc(z_temp, excess_b_v, template_coeffs, ['DECam_r'])['DECam_r']
-	app_mag_i_temp = mag_calc(z_temp, excess_b_v, template_coeffs, ['DECam_i'])['DECam_i']
-	app_mag_z_temp = mag_calc(z_temp, excess_b_v, template_coeffs, ['DECam_z'])['DECam_z']
-	app_mag_Y_temp = mag_calc(z_temp, excess_b_v, template_coeffs, ['DECam_Y'])['DECam_Y']
-	# ----------------------------------------------------–
-	# APPLY CUTS IN APPARENT MAGNITUDES
-	# -----------------------------------------------------
-	mask_mag_range = (app_mag_i_temp >= gals_mag_min) & (app_mag_i_temp <= gals_mag_max)
-	z_temp = z_temp[mask_mag_range]
-	abs_mag_temp = abs_mag_temp[mask_mag_range]
-	blue_red_temp = blue_red_temp[mask_mag_range]
-	app_mag_g_temp = app_mag_g_temp[mask_mag_range]
-	app_mag_r_temp = app_mag_r_temp[mask_mag_range]
-	app_mag_i_temp = app_mag_i_temp[mask_mag_range]
-	app_mag_z_temp = app_mag_z_temp[mask_mag_range]
-	app_mag_Y_temp = app_mag_Y_temp[mask_mag_range]
-	halo_mass_temp = halo_mass_temp[mask_mag_range]
-	x_coord_temp = x_coord_temp[mask_mag_range]
-	y_coord_temp = y_coord_temp[mask_mag_range]
-	z_coord_temp = z_coord_temp[mask_mag_range]
-	host_sub_index_temp = host_sub_index_temp[mask_mag_range]
-	# ----------------------------------------------------–
-	# APPEND REMAINING GALAXIES
-	# -----------------------------------------------------
-	z = np.append(z, z_temp)
-	abs_mag = np.append(abs_mag, abs_mag_temp)
-	blue_red = np.append(blue_red, blue_red_temp)
-	app_mag_g = np.append(app_mag_g, app_mag_g_temp)
-	app_mag_r = np.append(app_mag_r, app_mag_r_temp)
-	app_mag_i = np.append(app_mag_i, app_mag_i_temp)
-	app_mag_z = np.append(app_mag_z, app_mag_z_temp)
-	app_mag_Y = np.append(app_mag_Y, app_mag_Y_temp)
-	halo_mass = np.append(halo_mass, halo_mass_temp)
-	x_coord = np.append(x_coord, x_coord_temp)
-	y_coord = np.append(y_coord, y_coord_temp)
-	z_coord = np.append(z_coord, z_coord_temp)
-	host_sub_index = np.append(host_sub_index, host_sub_index_temp)
+    n_blue_uncut += n_blue
+    n_uncut += len(z_pin)
+    # ----------------------------------------------------–
+    # GET ABSOLUTE MAGNITUDES FOR NEW GALAXIES
+    # -----------------------------------------------------
+    abs_mag_red_pin = griddata((z_edges_stacked, np.log10(mass_edges_stacked)), np.ndarray.flatten(lim_abs_mag_red), (z_pin[mask_red], np.log10(mass[mask_red])))
+    abs_mag_blue_pin = griddata((z_edges_stacked, np.log10(mass_edges_stacked)), np.ndarray.flatten(lim_abs_mag_blue), (z_pin[mask_blue], np.log10(mass[mask_blue])))
+    # ----------------------------------------------------–
+    # APPEND RED AND BLUE GALAXIES
+    # -----------------------------------------------------
+    z_temp = np.append(z_pin[mask_blue], z_pin[mask_red])
+    abs_mag_temp = np.append(abs_mag_blue_pin, abs_mag_red_pin)
+    blue_red_temp = np.ones_like(z_temp, dtype=np.int16)
+    blue_red_temp[n_blue:] = 0
+    halo_mass_temp = np.append(mass[mask_blue], mass[mask_red])
+    x_coord_temp = np.append(x_coord_pin[mask_blue], x_coord_pin[mask_red])
+    y_coord_temp = np.append(y_coord_pin[mask_blue], y_coord_pin[mask_red])
+    z_coord_temp = np.append(z_coord_pin[mask_blue], z_coord_pin[mask_red])
+    host_sub_index_temp = np.append(host_sub[mask_blue], host_sub[mask_red])
+    # ----------------------------------------------------–
+    # CALCULATE TEMPLATE COEFFICIENTS
+    # -----------------------------------------------------
+    # Draw template coefficients
+    template_coeffs = np.empty((len(z_temp), n_templates))
+    template_coeffs[:n_blue] = galaxy_sed.sample_template_coeff_dirichlet(z_pin[mask_blue], template_coeff_alpha0_blue, template_coeff_alpha1_blue, template_coeff_z1_blue, template_coeff_weight_blue)
+    template_coeffs[n_blue:] = galaxy_sed.sample_template_coeff_dirichlet(z_pin[mask_red], template_coeff_alpha0_red, template_coeff_alpha1_red, template_coeff_z1_red, template_coeff_weight_red)
+    # Calculate absolute magnitudes according to coefficients and adjust coefficients according to drawn magnitudes
+    template_coeffs *= np.expand_dims(10 ** (0.4 * (mag_calc(np.zeros_like(z_temp), np.zeros_like(z_temp), template_coeffs, [lum_fct_filter_band])[lum_fct_filter_band] - abs_mag_temp)), -1)
+    # Transform to apparent coefficients
+    lum_dist = galaxy_sampling_util.apply_pycosmo_distfun(cosmo.background.dist_lum_a, z_temp)
+    template_coeffs *= np.expand_dims((10e-6 / lum_dist) ** 2 / (1 + z_temp), -1)
+    # ----------------------------------------------------–
+    # SET EXTINCTION MAP
+    # -----------------------------------------------------
+    # I'm setting them to zero, since I'm ignoring extinction values, as I don't have pixel coordinates
+    excess_b_v = np.zeros(len(z_temp))
+    # ----------------------------------------------------–
+    # CALCULATE APPARENT MAGNITUDES
+    # -----------------------------------------------------
+    temp_app_mag_dict = {}
+    for k in app_mag_dict.keys():
+        temp_app_mag_dict[k] = mag_calc(
+            z_temp,
+            excess_b_v,
+            template_coeffs,
+            [desired_filters[k]]
+        )[desired_filters[k]]
+
+    # ----------------------------------------------------–
+    # APPLY CUTS IN APPARENT MAGNITUDES
+    # -----------------------------------------------------
+    mask_mag_range = (temp_app_mag_dict[BAND_USED_FOR_MAG_CUTS] >= gals_mag_min) & (temp_app_mag_dict[BAND_USED_FOR_MAG_CUTS] <= gals_mag_max)
+
+    z_temp = z_temp[mask_mag_range]
+    abs_mag_temp = abs_mag_temp[mask_mag_range]
+    blue_red_temp = blue_red_temp[mask_mag_range]
+
+    for k in temp_app_mag_dict.keys():
+        temp_app_mag_dict[k] = temp_app_mag_dict[k][mask_mag_range]
+
+    halo_mass_temp = halo_mass_temp[mask_mag_range]
+    x_coord_temp = x_coord_temp[mask_mag_range]
+    y_coord_temp = y_coord_temp[mask_mag_range]
+    z_coord_temp = z_coord_temp[mask_mag_range]
+    host_sub_index_temp = host_sub_index_temp[mask_mag_range]
+    # ----------------------------------------------------–
+    # APPEND REMAINING GALAXIES
+    # -----------------------------------------------------
+    z = np.append(z, z_temp)
+    abs_mag = np.append(abs_mag, abs_mag_temp)
+    blue_red = np.append(blue_red, blue_red_temp)
+
+    for k in app_mag_dict.keys():
+        app_mag_dict[k] = np.append(app_mag_dict[k], temp_app_mag_dict[k])
+
+    halo_mass = np.append(halo_mass, halo_mass_temp)
+    x_coord = np.append(x_coord, x_coord_temp)
+    y_coord = np.append(y_coord, y_coord_temp)
+    z_coord = np.append(z_coord, z_coord_temp)
+    host_sub_index = np.append(host_sub_index, host_sub_index_temp)
 # end of loop
 # ----------------------------------------------------–
 # SAVE OUTPUT
@@ -430,11 +448,10 @@ for i in range(num_files):
 np.save(outfile_dir+outfile_galaxies_base+'z', z)
 np.save(outfile_dir+outfile_galaxies_base+'abs_mag', abs_mag)
 np.save(outfile_dir+outfile_galaxies_base+'blue_red', blue_red)
-np.save(outfile_dir+outfile_galaxies_base+'app_mag_g', app_mag_g)
-np.save(outfile_dir+outfile_galaxies_base+'app_mag_r', app_mag_r)
-np.save(outfile_dir+outfile_galaxies_base+'app_mag_i', app_mag_i)
-np.save(outfile_dir+outfile_galaxies_base+'app_mag_z', app_mag_z)
-np.save(outfile_dir+outfile_galaxies_base+'app_mag_Y', app_mag_Y)
+
+for k, values in app_mag_dict.items():
+    np.save(outfile_dir+outfile_galaxies_base + f"app_mag_{k}", values)
+
 np.save(outfile_dir+outfile_galaxies_base+'halo_mass', halo_mass)
 np.save(outfile_dir+outfile_galaxies_base+'x_coord', x_coord)
 np.save(outfile_dir+outfile_galaxies_base+'y_coord', y_coord)

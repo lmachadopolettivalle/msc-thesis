@@ -12,7 +12,6 @@ maps_remote_dir = 'ufig_res/maps/'
 filters_file_name = '/cluster/work/refregier/bernerp/DESI_BGS_filters/ufig_res/filters_collection.h5'
 templates_int_tables_file_name = '/cluster/work/refregier/bernerp/DESI_BGS_filters/ufig_res/sed_integrals__template_spectra_BlantonRoweis07.h5'
 
-
 lum_fct_z_res = 0.001
 lum_fct_m_res = 0.001 
 
