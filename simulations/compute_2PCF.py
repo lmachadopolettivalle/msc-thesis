@@ -1,0 +1,146 @@
+# Using x, y, z coordinates from galaxies
+# as outputted by SHAM,
+# determine their RA and Dec,
+# and compute the angular correlation function
+
+import numpy as np
+
+import Corrfunc
+from Corrfunc.mocks.DDtheta_mocks import DDtheta_mocks
+from Corrfunc.utils import convert_3d_counts_to_cf
+
+import sys
+sys.path.append("..")
+from desiimaginganalysis.mask import mask
+
+BANDS = ["g", "r", "z"]
+
+BASS_MzLS = "BASS-MzLS"
+REGIONS = (BASS_MzLS, )
+
+# Number of particles (cube root) used in run
+# This determines the path where the data is stored
+PARTICLE_COUNT_PINOCCHIO = 512
+
+# Load x, y, z positions
+# Path to output data from SHAM
+SHAM_OUTPUT_PATH = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/interpolation_outputs/"
+
+galaxies = {}
+for coord in ("x", "y", "z"):
+    filename = f"{SHAM_OUTPUT_PATH}/ucat_sorted_app_mag_interp_{coord}_coord.npy"
+
+    with open(filename, 'rb') as f:
+        galaxies[coord] = np.load(f)
+
+# Load magnitudes
+for band in BANDS:
+    filename = f"{SHAM_OUTPUT_PATH}/ucat_sorted_app_mag_interp_app_mag_{band}.npy"
+
+    with open(filename, 'rb') as f:
+        galaxies[band] = np.load(f)
+
+# Load whether galaxies are blue or red
+filename = f"{SHAM_OUTPUT_PATH}/ucat_sorted_app_mag_interp_blue_red.npy"
+
+with open(filename, 'rb') as f:
+    galaxies["blue_red"] = np.load(f)
+
+# Convert 3D positions into RA, Dec
+radii = np.sqrt(galaxies["x"]**2 + galaxies["y"]**2 + galaxies["z"]**2)
+
+theta = np.arccos(galaxies["z"] / radii)
+phi = np.arctan2(galaxies["y"], galaxies["x"])
+
+# Note that phi is in range [-pi, pi], but for healpy, must be in range [0, 360 degrees]
+phi[phi < 0] += 2 * np.pi
+
+galaxies["RA"] = np.degrees(phi) # Range: 0 to 360
+galaxies["DEC"] = np.degrees(np.pi/2 - theta) # Range: -90 to +90
+
+# Load randoms, apply mask
+print("Loading randoms")
+randoms_nside = 256
+randoms = {}
+with open("/cluster/scratch/lmachado/DataProducts/randoms/randoms_RA.npy", "rb") as f:
+    randoms["RA"] = np.load(f)
+with open("/cluster/scratch/lmachado/DataProducts/randoms/randoms_DEC.npy", "rb") as f:
+    randoms["DEC"] = np.load(f)
+with open(f"/cluster/scratch/lmachado/DataProducts/randoms/randoms_pixels_NSIDE_{randoms_nside}.npy", "rb") as f:
+    randoms["HPXPIXEL"]= np.load(f)
+
+# Range used to filter randoms was chosen via trial and error, to make sure
+# there is a similar number of randoms and targets
+randoms = {
+    k: v[:300000]
+    for k, v in randoms.items()
+}
+
+# Apply mask to randoms
+print("Applying mask to randoms")
+
+randoms_masked = mask(randoms["HPXPIXEL"], randoms_nside, regions=REGIONS)
+randoms_ids_in_mask = np.where(randoms_masked > 0)[0]
+
+randoms = {
+    k: v[randoms_ids_in_mask]
+    for k, v in randoms.items()
+}
+
+print("Total random count (after masking):", len(randoms["RA"]))
+
+# TODO split between blue and red galaxies
+# Compute 2PCF for different r-mag bins
+rmag_bins = [
+    [15, 16],
+    [16, 17],
+    [17, 18],
+    [18, 19],
+    [19, 19.5],
+]
+
+# Compute correlation function
+nbins = 24
+bins = np.logspace(np.log10(1e-3), np.log10(20), nbins + 1, endpoint=True)
+nthreads = 8
+
+# Pre-compute randoms-related data
+print("Computing mocks for randoms")
+RR_counts = DDtheta_mocks(1, nthreads, bins, randoms["RA"], randoms["DEC"])
+randoms_count = len(randoms["RA"])
+
+print("Computing 2PCF for regions", REGIONS)
+
+
+for rmag_low, rmag_high in rmag_bins:
+    print(rmag_low, rmag_high)
+    rmag_ids = np.where(
+        (rmag_low <= galaxies["r"]) &
+        (galaxies["r"] < rmag_high)
+    )[0]
+    rmag_filtered_targets = {
+        k: v[rmag_ids]
+        for k, v in galaxies.items()
+    }
+
+    # Count number of targets and randoms
+    targets_count = len(rmag_filtered_targets["RA"])
+
+    print("Targets count:", targets_count)
+
+    DD_counts = DDtheta_mocks(1, nthreads, bins, rmag_filtered_targets["RA"], rmag_filtered_targets["DEC"])
+    DR_counts = DDtheta_mocks(0, nthreads, bins, rmag_filtered_targets["RA"], rmag_filtered_targets["DEC"], RA2=randoms["RA"], DEC2=randoms["DEC"])
+
+    wtheta = convert_3d_counts_to_cf(
+        targets_count, targets_count,
+        randoms_count, randoms_count,
+        DD_counts, DR_counts,
+        DR_counts, RR_counts
+    )
+    with open(f"simulated_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy", "wb") as f:
+        np.save(f, bins[:-1])
+    with open(f"simulated_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy", "wb") as f:
+        np.save(f, wtheta)
+
+
+print("Done computing 2PCF")

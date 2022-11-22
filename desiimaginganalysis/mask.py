@@ -6,7 +6,10 @@ import numpy as np
 from desitarget.io import desitarget_resolve_dec
 from desitarget.geomask import hp_in_box, nside2nside
 
-from constants import BASS_MzLS, DECaLS_NGC, DECaLS_SGC, ALL_REGIONS
+BASS_MzLS = "BASS-MzLS"
+DECaLS_NGC = "DECaLS-NGC"
+DECaLS_SGC = "DECaLS-SGC"
+ALL_REGIONS = (BASS_MzLS, DECaLS_NGC, DECaLS_SGC)
 
 def mask(pixel_ids, nside, regions=ALL_REGIONS):
     # Given an array of pixel IDs at some NSIDE (in NESTED ordering),
