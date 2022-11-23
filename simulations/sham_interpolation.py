@@ -235,10 +235,10 @@ abs_mag = np.load(infile_ucat_sampling_dir + infile_ucat_absmag)
 z_ucat = np.load(infile_ucat_sampling_dir + infile_ucat_z)
 blue_red = np.load(infile_ucat_sampling_dir + infile_ucat_redblue)
 
-abs_mag_red = abs_mag[blue_red < 0.5]
-z_red = z_ucat[blue_red < 0.5]
-abs_mag_blue = abs_mag[blue_red > 0.5]
-z_blue = z_ucat[blue_red > 0.5]
+abs_mag_red = abs_mag[blue_red == RED]
+z_red = z_ucat[blue_red == RED]
+abs_mag_blue = abs_mag[blue_red == BLUE]
+z_blue = z_ucat[blue_red == BLUE]
 
 # ----------------------------------------------------–
 # LOAD HALO-SUBHALO HISTOGRAMS
@@ -261,8 +261,14 @@ num_mass_bins = len(bin_edges_mass) - 1
 idx_lim = (np.abs(bin_edges_mass - M_limit)).argmin()
 M_limit_effective = bin_edges_mass[idx_lim]
 
-mask_hist_red = np.concatenate((np.zeros(idx_lim+1), np.ones(num_mass_bins-idx_lim-1)))
-mask_hist_blue = np.concatenate((np.ones(idx_lim+1), np.zeros(num_mass_bins-idx_lim-1)))
+mask_hist_red = np.concatenate((
+    np.zeros(idx_lim+1),
+    np.ones(num_mass_bins-idx_lim-1)
+))
+mask_hist_blue = np.concatenate((
+    np.ones(idx_lim+1),
+    np.zeros(num_mass_bins-idx_lim-1)
+))
 
 hist_z_mass_blue = hist_z_mass_halos * mask_hist_blue
 hist_z_mass_red = hist_z_mass_halos * mask_hist_red + hist_z_mass_subs
@@ -356,7 +362,7 @@ for i in range(num_files):
     # ----------------------------------------------------–
     # DIVIDE HALOS AND SUBHALOS INTO RED AND BLUE
     # -----------------------------------------------------
-    mask_red = (host_sub < 0.5) | (mass > M_limit_effective)
+    mask_red = (int(host_sub) == 0) | (mass > M_limit_effective)
     mask_blue = ~ mask_red
     n_blue = len(z_pin[mask_blue])
 
@@ -373,7 +379,8 @@ for i in range(num_files):
     z_temp = np.append(z_pin[mask_blue], z_pin[mask_red])
     abs_mag_temp = np.append(abs_mag_blue_pin, abs_mag_red_pin)
     blue_red_temp = np.ones_like(z_temp, dtype=np.int16)
-    blue_red_temp[n_blue:] = 0
+    blue_red_temp = np.full(len(z_temp), BLUE, dtype=int)
+    blue_red_temp[n_blue:] = RED
     halo_mass_temp = np.append(mass[mask_blue], mass[mask_red])
     x_coord_temp = np.append(x_coord_pin[mask_blue], x_coord_pin[mask_red])
     y_coord_temp = np.append(y_coord_pin[mask_blue], y_coord_pin[mask_red])

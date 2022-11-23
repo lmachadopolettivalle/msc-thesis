@@ -32,10 +32,6 @@ print("Done importing libraries.")
 # PARAMETERS TO BE SET
 # -----------------------------------------------------
 
-# Values used to identify blue vs. red in final array
-BLUE = 1
-RED = 0
-
 # Configuration and cosmology parameters
 m_max = -12
 
@@ -223,8 +219,8 @@ z_mabs_sampler_red = galaxy_luminosity_function.RedshiftAbsMagSampler(lum_fct_z_
 z_blue, abs_mag_blue = z_mabs_sampler_blue(n_gal_blue)
 z_red, abs_mag_red = z_mabs_sampler_red(n_gal_red)
 
-index_blue = np.full(len(z_blue), BLUE)
-index_red = np.full(len(z_red), RED)
+index_blue = np.full(len(z_blue), BLUE, dtype=int)
+index_red = np.full(len(z_red), RED, dtype=int)
 
 n_tot = n_gal_red + n_gal_blue
 z_tot = np.concatenate((z_red, z_blue))

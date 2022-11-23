@@ -1,4 +1,10 @@
 import numpy as np
+
+# Values used to identify blue vs. red in final array
+BLUE = 1
+RED = 0
+
+
 # -----------------------------------------------------
 # UCAT / UFIG PARAMETERS
 # -----------------------------------------------------
