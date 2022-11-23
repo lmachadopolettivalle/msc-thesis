@@ -13,6 +13,8 @@ import sys
 sys.path.append("..")
 from desiimaginganalysis.mask import mask
 
+from sham_model_constants import BLUE, RED
+
 BANDS = ["g", "r", "z"]
 
 BASS_MzLS = "BASS-MzLS"
@@ -112,35 +114,44 @@ randoms_count = len(randoms["RA"])
 print("Computing 2PCF for regions", REGIONS)
 
 
-for rmag_low, rmag_high in rmag_bins:
-    print(rmag_low, rmag_high)
-    rmag_ids = np.where(
-        (rmag_low <= galaxies["r"]) &
-        (galaxies["r"] < rmag_high)
-    )[0]
-    rmag_filtered_targets = {
-        k: v[rmag_ids]
+# Compute 2PCF, for blue and red galaxies separately
+for color_name, color_value in (("blue", BLUE), ("red", RED)):
+    print(f"Computing 2PCF for color {color_name}")
+    color_bitmask = galaxies["blue_red"] == color_value
+    color_galaxies = {
+        k: v[color_bitmask]
         for k, v in galaxies.items()
     }
 
-    # Count number of targets and randoms
-    targets_count = len(rmag_filtered_targets["RA"])
+    for rmag_low, rmag_high in rmag_bins:
+        print(rmag_low, rmag_high)
+        rmag_ids = np.where(
+            (rmag_low <= color_galaxies["r"]) &
+            (color_galaxies["r"] < rmag_high)
+        )[0]
+        rmag_filtered_targets = {
+            k: v[rmag_ids]
+            for k, v in color_galaxies.items()
+        }
 
-    print("Targets count:", targets_count)
+        # Count number of targets and randoms
+        targets_count = len(rmag_filtered_targets["RA"])
 
-    DD_counts = DDtheta_mocks(1, nthreads, bins, rmag_filtered_targets["RA"], rmag_filtered_targets["DEC"])
-    DR_counts = DDtheta_mocks(0, nthreads, bins, rmag_filtered_targets["RA"], rmag_filtered_targets["DEC"], RA2=randoms["RA"], DEC2=randoms["DEC"])
+        print("Targets count:", targets_count)
 
-    wtheta = convert_3d_counts_to_cf(
-        targets_count, targets_count,
-        randoms_count, randoms_count,
-        DD_counts, DR_counts,
-        DR_counts, RR_counts
-    )
-    with open(f"simulated_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy", "wb") as f:
-        np.save(f, bins[:-1])
-    with open(f"simulated_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy", "wb") as f:
-        np.save(f, wtheta)
+        DD_counts = DDtheta_mocks(1, nthreads, bins, rmag_filtered_targets["RA"], rmag_filtered_targets["DEC"])
+        DR_counts = DDtheta_mocks(0, nthreads, bins, rmag_filtered_targets["RA"], rmag_filtered_targets["DEC"], RA2=randoms["RA"], DEC2=randoms["DEC"])
 
+        wtheta = convert_3d_counts_to_cf(
+            targets_count, targets_count,
+            randoms_count, randoms_count,
+            DD_counts, DR_counts,
+            DR_counts, RR_counts
+        )
+
+        with open(f"simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy", "wb") as f:
+            np.save(f, bins[:-1])
+        with open(f"simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy", "wb") as f:
+            np.save(f, wtheta)
 
 print("Done computing 2PCF")
