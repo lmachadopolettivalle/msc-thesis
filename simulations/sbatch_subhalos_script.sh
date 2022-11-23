@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --mem-per-cpu=40000
-#SBATCH -n 1
+#SBATCH --mem-per-cpu=80000
+#SBATCH -n 4
 #SBATCH -t 02:00:00
 #SBATCH -J subhalos_job_2048
 #SBATCH -o /cluster/home/lmachado/msc-thesis/simulations/subhalos_output_2048

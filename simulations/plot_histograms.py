@@ -46,6 +46,8 @@ for band in BANDS:
     with open(filename, 'rb') as f:
         data = np.load(f)
 
+    print(f"Number of objects: {len(data)}")
+
     plt.hist(
         data,
         bins=bins[band],
@@ -59,6 +61,6 @@ for band in BANDS:
     plt.ylabel("Count")
 
     plt.grid()
-    #plt.savefig("/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/r_primed_r_comparison.pdf")
+    plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/{band}mag_hist_simulated.pdf")
 
     plt.show()

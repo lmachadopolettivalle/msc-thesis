@@ -35,4 +35,7 @@ plt.title("Simulated galaxies")
 plt.xlim([2e-3, 20])
 plt.ylim([1e-4, 100])
 plt.grid()
+
+plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_BASS_simulated.pdf")
+
 plt.show()
