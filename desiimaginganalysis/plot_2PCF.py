@@ -36,11 +36,12 @@ MARKERS = {
 }
 
 COLORS = {
-    15: "C0",
-    16: "C1",
-    17: "C2",
-    18: "C3",
-    19: "C4",
+    14: "C0",
+    15: "C1",
+    16: "C2",
+    17: "C3",
+    18: "C4",
+    19: "C5",
 }
 
 # Obtain list of 2PCF files available

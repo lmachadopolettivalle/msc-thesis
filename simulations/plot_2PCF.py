@@ -6,6 +6,7 @@ plt.rcParams["font.size"] = "12"
 LINEWIDTH = 2
 
 rmag_bins = [
+    [14, 15],
     [15, 16],
     [16, 17],
     [17, 18],

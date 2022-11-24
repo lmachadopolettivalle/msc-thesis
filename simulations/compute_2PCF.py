@@ -94,6 +94,7 @@ print("Total random count (after masking):", len(randoms["RA"]))
 # TODO split between blue and red galaxies
 # Compute 2PCF for different r-mag bins
 rmag_bins = [
+    [14, 15],
     [15, 16],
     [16, 17],
     [17, 18],
