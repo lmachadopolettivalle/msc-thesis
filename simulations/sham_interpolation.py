@@ -362,7 +362,7 @@ for i in range(num_files):
     # ----------------------------------------------------–
     # DIVIDE HALOS AND SUBHALOS INTO RED AND BLUE
     # -----------------------------------------------------
-    mask_red = (int(host_sub) == 0) | (mass > M_limit_effective)
+    mask_red = (host_sub == 0) | (mass > M_limit_effective)
     mask_blue = ~ mask_red
     n_blue = len(z_pin[mask_blue])
 

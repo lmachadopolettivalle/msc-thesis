@@ -45,11 +45,11 @@ nfw_model = NFWProfile()
 # However, due to the large memory and time requirements,
 # we need to split this run into many batches,
 # which means we only process a few files at a time.
-NUMBER_OF_FILES_TO_BE_PROCESSED = 24
+NUMBER_OF_FILES_TO_BE_PROCESSED = 3
 
 # Cube root of number of particles used.
 # This is present in the paths to different input files used in this script.
-particle_count_pinocchio = 512
+particle_count_pinocchio = 2048
 
 # Directory containing PINOCCHIO outputs.
 # This is where the subhalo catalog will also be saved at the end of this script.
