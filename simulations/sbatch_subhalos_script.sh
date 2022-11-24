@@ -1,7 +1,8 @@
 #!/bin/bash
-#SBATCH --mem-per-cpu=80000
-#SBATCH -n 4
-#SBATCH -t 02:00:00
+#SBATCH --mem-per-cpu=4096
+#SBATCH -n 128
+#SBATCH -N 1
+#SBATCH -t 24:00:00
 #SBATCH -J subhalos_job_2048
 #SBATCH -o /cluster/home/lmachado/msc-thesis/simulations/subhalos_output_2048
 #SBATCH -e /cluster/home/lmachado/msc-thesis/simulations/subhalos_error_2048
