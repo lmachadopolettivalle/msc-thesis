@@ -8,7 +8,7 @@
 # Author: Pascale Berner
 # Co-Author: Luis Machado
 # first written: 04.11.2022
-# last adapted: 17.11.2022
+# last adapted: 24.11.2022
 # partially copied from: halo_subhalo_from_plc_hist_scatterinpos_new_6.py
 
 # ------------------------------------------
@@ -27,6 +27,8 @@ import os
 import re
 from tqdm import tqdm
 
+np.random.seed(42)
+
 print("Done importing libraries.")
 
 # Initialize NFWProfile model
@@ -38,9 +40,16 @@ nfw_model = NFWProfile()
 # THIS IS A SECTION THAT NEEDS TO BE ADAPTED EACH TIME!
 # -----------------------------------------------------
 
+# Number of files to be processed in this run
+# Ideally this could be the total number of files.
+# However, due to the large memory and time requirements,
+# we need to split this run into many batches,
+# which means we only process a few files at a time.
+NUMBER_OF_FILES_TO_BE_PROCESSED = 24
+
 # Cube root of number of particles used.
 # This is present in the paths to different input files used in this script.
-particle_count_pinocchio = 2048
+particle_count_pinocchio = 512
 
 # Directory containing PINOCCHIO outputs.
 # This is where the subhalo catalog will also be saved at the end of this script.
@@ -239,8 +248,8 @@ def t_dyn(z):
 # preparation for position of subhalo within the host
 # sampling using an Isothermal profile, according to arXiv:0402160
 def cum_num(rad):
-	#rad: normalised radius, rad = r/(0.37*r_vir)
-	return rad - np.arctan(rad)
+    #rad: normalised radius, rad = r/(0.37*r_vir)
+    return rad - np.arctan(rad)
 rad_x = np.linspace(0., 1./0.37, 1000) # reference array for sampling the normalised radius rad
 cum_N = cum_num(rad_x)
 Nmax = np.max(cum_N)
@@ -286,6 +295,7 @@ redshift_sorted = 1./scale_factor_sorted - 1.
 # -----------------------------------------------------
 # IMPORT MERGER HISTORY
 # -----------------------------------------------------
+print("Loading merger history...")
 
 groupid = np.array([])
 treeind = np.array([])
@@ -350,6 +360,8 @@ eta = np.array([eta_x[cdf == min(cdf[(cdf - yy) > 0])][0] for yy in cdf_sample])
 # rcrv: R_c/R_vir, parameter for the orbital energy
 rcrv = np.random.uniform(0.1, 1., n_groups)
 
+print("Finished loading history.")
+
 # -----------------------------------------------------
 # PREPARATIONS EMPTY 2D HISTOGRAMS
 # -----------------------------------------------------
@@ -386,11 +398,42 @@ n_halos = 0
 n_subhalos = 0
 n_all = 0
 
+# Keep track of how many files have been processed.
+# Stop when we reach the limit set by the user above,
+# or when we have completed all files.
+count_files_processed = 0
+
 for i in range(num_files):
+    # ------------------------------
+    # CHECK IF WE HAVE PROCESSED ENOUGH FILES,
+    # AND STOP IF WE HAVE.
+    # ------------------------------
+    if count_files_processed >= NUMBER_OF_FILES_TO_BE_PROCESSED:
+        print(f"Finished processing the minimum requested number of files: {NUMBER_OF_FILES_TO_BE_PROCESSED}")
+        print(f"Actually processed {count_files_processed} files.")
+        print("Stopping this job...")
+        break
+
+    # If we have not processed the requested number of files,
+    # begin next file
+    print(f"Starting computation for file ending {i}...")
+    # ------------------------------
+    # CHECK IF FILE HAS ALREADY BEEN PROCESSED.
+    # IF SO, CONTINUE TO NEXT FILE
+    # ------------------------------
+    input_halo_filename = dirname + plc_file + file_ending[i]
+    output_subhalo_filename = dirname + outfile_halos + file_ending[i] + ".txt"
+    output_2Dhist_halo = outfile_dir + outfile_hist_halos + file_ending[i] # Note that savez adds a '.npz' extension
+    output_2Dhist_subhalo = outfile_dir + outfile_hist_subhalos + file_ending[i] # Note that savez adds a '.npz' extension
+
+    if os.path.exists(output_subhalo_filename) and os.path.exists(f"{output_2Dhist_halo}.npz") and os.path.exists(f"{output_2Dhist_subhalo}.npz"):
+        print(f"Files have already been created for file ending {i}, skipping this index...")
+        continue
+
     # ------------------------------
     # LOAD ONE LIGHTCONE FILE
     # ------------------------------
-    (M, haloid, redshift, X, Y, Z) = np.loadtxt(dirname+plc_file+file_ending[i], unpack=True, usecols=(8,0,1,2,3,4))
+    (M, haloid, redshift, X, Y, Z) = np.loadtxt(input_halo_filename, unpack=True, usecols=(8,0,1,2,3,4))
     # ------------------------------
     # APPLY PIXEL MASK and DEC LIMITS
     # ------------------------------
@@ -448,24 +491,22 @@ for i in range(num_files):
     # order by descending mass, along the 1st column, only first l rows
     halo_subhalo_array_sorted = halo_subhalo_array[halo_subhalo_array[:,1].argsort()][::-1][:l,:]
 
-    np.savetxt(dirname + outfile_halos + file_ending[i] + '.txt', halo_subhalo_array_sorted, fmt='%d %.8e %.8f %.8e %.8e %.8e %.8e %.8e %d %.8e %.8e %d')
+    np.savetxt(output_subhalo_filename, halo_subhalo_array_sorted, fmt='%d %.8e %.8f %.8e %.8e %.8e %.8e %.8e %d %.8e %.8e %d')
 
     # ------------------------------
     # CALCULATE 2D HISTOGRAMS
     # ------------------------------
     hist_z_mass_halos_temp, bin_edges_z, bin_edges_mass = np.histogram2d(redshift, M, bins=(bin_edges_z, bin_edges_mass))
     hist_z_mass_subs_temp, bin_edges_z, bin_edges_mass = np.histogram2d(halo_subhalo_array[len(haloid):l,2], halo_subhalo_array[len(haloid):l,1], bins=(bin_edges_z, bin_edges_mass))
-    # ------------------------------
-    # ADD 2D HISTOGRAMS UP
-    # ------------------------------
-    hist_z_mass_halos += hist_z_mass_halos_temp
-    hist_z_mass_subs += hist_z_mass_subs_temp
 
-# -----------------------------------------------------
-# SAVE 2D HISTOGRAMS
-# -----------------------------------------------------
-np.savez(outfile_dir + outfile_hist_halos, hist_z_mass_halos=hist_z_mass_halos, bin_edges_z=bin_edges_z, bin_edges_mass=bin_edges_mass)
-np.savez(outfile_dir + outfile_hist_subhalos, hist_z_mass_subs=hist_z_mass_subs, bin_edges_z=bin_edges_z, bin_edges_mass=bin_edges_mass)
+    # ------------------------------
+    # SAVE 2D HISTOGRAMS TO FILES
+    # ------------------------------
+    np.savez(output_2Dhist_halo, hist_z_mass_halos=hist_z_mass_halos_temp, bin_edges_z=bin_edges_z, bin_edges_mass=bin_edges_mass)
+    np.savez(output_2Dhist_subhalo, hist_z_mass_subs=hist_z_mass_subs_temp, bin_edges_z=bin_edges_z, bin_edges_mass=bin_edges_mass)
+
+    count_files_processed += 1
+    print(f"Finished processing files for file ending {i}.")
 
 # -----------------------------------------------------
 # SOME PRINT OUTPUT
@@ -475,3 +516,4 @@ print('n_subhalos = ' + str(n_subhalos))
 print('n_all = ' + str(n_all))
 print('outfile_halos: groupid, group mass [Msun], redshift of host, x, y, z of host [Mpc/h], mass of host minus masses of subhalos, mass of host, host?, delta_t, tdf, halo id of host')
 
+print("Job complete.")
