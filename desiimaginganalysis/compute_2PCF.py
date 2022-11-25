@@ -34,7 +34,7 @@ with open("/cluster/scratch/lmachado/DataProducts/randoms/randoms_RA.npy", "rb")
 with open("/cluster/scratch/lmachado/DataProducts/randoms/randoms_DEC.npy", "rb") as f:
     randoms["DEC"] = np.load(f)
 with open(f"/cluster/scratch/lmachado/DataProducts/randoms/randoms_pixels_NSIDE_{randoms_nside}.npy", "rb") as f:
-    randoms["HPXPIXEL"]= np.load(f)
+    randoms["HPXPIXEL"] = np.load(f)
 
 
 # Range used to filter randoms was chosen via trial and error, to make sure

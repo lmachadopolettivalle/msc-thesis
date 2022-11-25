@@ -21,7 +21,6 @@ print("Importing required libraries...")
 from collections import defaultdict
 from halotools.empirical_models import NFWProfile # ATTENTION: needs hdf5 and python/3.6.0!!!
 import healpy as hp
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import re
@@ -45,7 +44,7 @@ nfw_model = NFWProfile()
 # However, due to the large memory and time requirements,
 # we need to split this run into many batches,
 # which means we only process a few files at a time.
-NUMBER_OF_FILES_TO_BE_PROCESSED = 3
+NUMBER_OF_FILES_TO_BE_PROCESSED = 24
 
 # Cube root of number of particles used.
 # This is present in the paths to different input files used in this script.
@@ -270,17 +269,18 @@ def loop_dict(l):
             subhalos = subs[(delta_t < tdf) & (delta_t >= 0) & (m_ratio_temp[subs] < 100.)]
             n = len(subhalos)
             if n > 0:
-                    delta_t_subhalos = delta_t[(delta_t < tdf) & (delta_t >= 0) & (m_ratio_temp[subs] < 100.)] # for saving
-                    tdf_subhalos = tdf[(delta_t < tdf) & (delta_t >= 0) & (m_ratio_temp[subs] < 100.)] # for saving
-                    N_sample = np.random.uniform(Nmin, Nmax, n)
-                    x_sample = np.array([rad_x[cum_N == min(cum_N[(cum_N - yy) > 0])][0] for yy in N_sample])
-                    rad_i = x_sample * 0.37 * nfw_model.halo_mass_to_halo_radius(M[i]) # assumption: the given radius is approximately the virial radius
-                    x_i = np.reshape(x_rand_prep[l:l+n]*rad_i+X[i], (n,1))
-                    y_i = np.reshape(y_rand_prep[l:l+n]*rad_i+Y[i], (n,1))
-                    z_i = np.reshape(z_rand_prep[l:l+n]*rad_i+Z[i], (n,1))
-                    halo_subhalo_array[l:l+n] = np.concatenate((np.reshape(groupid[subhalos], (n,1)), np.reshape(num_part[subhalos], (n,1))*m_part, redshift[i]*np.ones((n,1)), x_i, y_i, z_i, np.zeros((n,1)), M[i]*np.ones((n,1)), np.zeros((n,1)), np.reshape(delta_t_subhalos, (n,1)), np.reshape(tdf_subhalos, (n,1)), haloid[i]*np.ones((n,1)) ), axis=1)
-                    halo_subhalo_array[i,6] = M[i] - m_part*np.sum(num_part[subhalos])
-                    l = l+n
+                delta_t_subhalos = delta_t[(delta_t < tdf) & (delta_t >= 0) & (m_ratio_temp[subs] < 100.)] # for saving
+                tdf_subhalos = tdf[(delta_t < tdf) & (delta_t >= 0) & (m_ratio_temp[subs] < 100.)] # for saving
+                N_sample = np.random.uniform(Nmin, Nmax, n)
+                x_sample = np.array([rad_x[cum_N == min(cum_N[(cum_N - yy) > 0])][0] for yy in N_sample])
+                rad_i = x_sample * 0.37 * nfw_model.halo_mass_to_halo_radius(M[i]) # assumption: the given radius is approximately the virial radius
+                x_i = np.reshape(x_rand_prep[l:l+n]*rad_i+X[i], (n,1))
+                y_i = np.reshape(y_rand_prep[l:l+n]*rad_i+Y[i], (n,1))
+                z_i = np.reshape(z_rand_prep[l:l+n]*rad_i+Z[i], (n,1))
+
+                halo_subhalo_array[l:l+n] = np.concatenate((np.reshape(groupid[subhalos], (n,1)), np.reshape(num_part[subhalos], (n,1))*m_part, redshift[i]*np.ones((n,1)), x_i, y_i, z_i, np.zeros((n,1)), M[i]*np.ones((n,1)), np.zeros((n,1)), np.reshape(delta_t_subhalos, (n,1)), np.reshape(tdf_subhalos, (n,1)), haloid[i]*np.ones((n,1)) ), axis=1)
+                halo_subhalo_array[i,6] = M[i] - m_part*np.sum(num_part[subhalos])
+                l = l+n
     return l
 
 # -----------------------------------------------------
@@ -451,6 +451,7 @@ for i in range(num_files):
     # APPLY MASK AND DEC LIMITS
     pix_halos = hp.ang2pix(NSIDE, ra, dec, lonlat=True, nest=NEST)
     spatial_mask = (m_footprint[pix_halos] > MASK_CUTOFF_VALUE) & (dec >= dec_min) & (dec <= dec_max)
+
     M = M[spatial_mask]
     haloid = haloid[spatial_mask]
     redshift = redshift[spatial_mask]

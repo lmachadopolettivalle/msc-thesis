@@ -10,7 +10,7 @@ import os
 
 # Cube root of number of particles used.
 # This is present in the paths to different input files used in this script.
-particle_count_pinocchio = 512
+particle_count_pinocchio = 2048
 
 hist_2D_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/halo_subhalo_plc/"
 
@@ -52,7 +52,7 @@ for filename in FILENAMES:
         hist_z_mass[halo_or_subhalo] += hist_z_mass_temp
 
     # Remove temporary file after it has been added to the cumulative histogram
-    os.remove(f"{hist_2D_dir}/{filename}")
+    #os.remove(f"{hist_2D_dir}/{filename}")
 
 # -----------------------------------------------------
 # SAVE 2D HISTOGRAMS

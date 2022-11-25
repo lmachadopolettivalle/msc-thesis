@@ -359,6 +359,7 @@ for i in range(num_files):
     # LOAD HALO-SUBHALO FILE
     # -----------------------------------------------------
     mass, z_pin, x_coord_pin, y_coord_pin, z_coord_pin, host_sub = np.loadtxt(infile_halos_dir + infile_halos + file_ending[i] + '.txt', usecols=(1,2,3,4,5,8), unpack=True)
+
     # ----------------------------------------------------–
     # DIVIDE HALOS AND SUBHALOS INTO RED AND BLUE
     # -----------------------------------------------------
@@ -447,6 +448,7 @@ for i in range(num_files):
     y_coord = np.append(y_coord, y_coord_temp)
     z_coord = np.append(z_coord, z_coord_temp)
     host_sub_index = np.append(host_sub_index, host_sub_index_temp)
+
 # end of loop
 # ----------------------------------------------------–
 # SAVE OUTPUT
