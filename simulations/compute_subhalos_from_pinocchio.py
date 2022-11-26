@@ -1,9 +1,8 @@
 # Description of the program:
 # extract mergers from merger history of PINOCCHIO,
 # load the halo catalog (for multiple files of the halo lightcone),
-# apply a healpix mask, calculate the surviving subhalos
-# save the resulting halo-subhalo catalog (in seperate files)
-# and a 2D histogram (mass and redshift) for the halos and subhalos
+# apply a healpix mask, calculate the surviving subhalos, and
+# save the resulting halo-subhalo catalog (in separate files)
 
 # Author: Pascale Berner
 # Co-Author: Luis Machado
@@ -72,8 +71,6 @@ else:
     print("Created output directory successfully.")
 
 outfile_halos = 'pinocchio_masked_halos_subhalos_plc'
-outfile_hist_halos = 'pinocchio_masked_halos_hist2D'
-outfile_hist_subhalos = 'pinocchio_masked_subhalos_hist2D'
 
 # ------------------------------------------
 # MASKING CONFIGURATION
@@ -184,18 +181,12 @@ if num_files == 1:
 else:
     file_ending = [f".{i}" for i in range(num_files)]
 
-# binning settings for 2D histograms
-num_z_bins = 150
-num_mass_bins = 30
-
 # print directory etc.
 print('dirname = ' + dirname)
 print('cosmology_file = ' + cosmology_file)
 print('plf_file = ' + plc_file)
 print('history_file = ' + history_file)
 print('outfile_halos = ' + outfile_halos)
-print('outfile_hist_halos = ' + outfile_hist_halos)
-print('outfile_hist_subhalos = ' + outfile_hist_subhalos)
 print('outfile_dir = ' + outfile_dir)
 print('m_part = ' + str(m_part))
 print('min_num_part = ' + str(min_num_part))
@@ -207,8 +198,6 @@ print('NSIDE = ' + str(NSIDE))
 print('dec_min = ' + str(dec_min))
 print('dec_max = ' + str(dec_max))
 print('infile_footprint = ' + str(infile_footprint))
-print('for 2D histograms: num_z_bins = ' + str(num_z_bins))
-print('for 2D histograms: num_mass_bins = ' + str(num_mass_bins))
 
 # -----------------------------------------------------
 # SPECIFICATIONS FOR THE USED COSMOLOGY
@@ -363,18 +352,6 @@ rcrv = np.random.uniform(0.1, 1., n_groups)
 print("Finished loading history.")
 
 # -----------------------------------------------------
-# PREPARATIONS EMPTY 2D HISTOGRAMS
-# -----------------------------------------------------
-
-min_mass = m_part * min_num_part # Msun/h
-max_mass = 6.0e15 # Msun/h, hopefully high enough
-bin_edges_mass = np.logspace(np.log10(min_mass), np.log10(max_mass), num=(num_mass_bins+1))
-bin_edges_z = np.linspace(z_min, z_max, (num_z_bins+1))
-
-hist_z_mass_halos, bin_edges_z, bin_edges_mass = np.histogram2d([], [], bins=(bin_edges_z, bin_edges_mass))
-hist_z_mass_subs, bin_edges_z, bin_edges_mass = np.histogram2d([], [], bins=(bin_edges_z, bin_edges_mass))
-
-# -----------------------------------------------------
 # PREPARE FOR POSITIONS OF SURVIVING SUBHALOS WITHIN HOSTS
 # -----------------------------------------------------
 
@@ -423,10 +400,8 @@ for i in range(num_files):
     # ------------------------------
     input_halo_filename = dirname + plc_file + file_ending[i]
     output_subhalo_filename = dirname + outfile_halos + file_ending[i] + ".txt"
-    output_2Dhist_halo = outfile_dir + outfile_hist_halos + file_ending[i] # Note that savez adds a '.npz' extension
-    output_2Dhist_subhalo = outfile_dir + outfile_hist_subhalos + file_ending[i] # Note that savez adds a '.npz' extension
 
-    if os.path.exists(output_subhalo_filename) and os.path.exists(f"{output_2Dhist_halo}.npz") and os.path.exists(f"{output_2Dhist_subhalo}.npz"):
+    if os.path.exists(output_subhalo_filename):
         print(f"Files have already been created for file ending {i}, skipping this index...")
         continue
 
@@ -493,18 +468,6 @@ for i in range(num_files):
     halo_subhalo_array_sorted = halo_subhalo_array[halo_subhalo_array[:,1].argsort()][::-1][:l,:]
 
     np.savetxt(output_subhalo_filename, halo_subhalo_array_sorted, fmt='%d %.8e %.8f %.8e %.8e %.8e %.8e %.8e %d %.8e %.8e %d')
-
-    # ------------------------------
-    # CALCULATE 2D HISTOGRAMS
-    # ------------------------------
-    hist_z_mass_halos_temp, bin_edges_z, bin_edges_mass = np.histogram2d(redshift, M, bins=(bin_edges_z, bin_edges_mass))
-    hist_z_mass_subs_temp, bin_edges_z, bin_edges_mass = np.histogram2d(halo_subhalo_array[len(haloid):l,2], halo_subhalo_array[len(haloid):l,1], bins=(bin_edges_z, bin_edges_mass))
-
-    # ------------------------------
-    # SAVE 2D HISTOGRAMS TO FILES
-    # ------------------------------
-    np.savez(output_2Dhist_halo, hist_z_mass_halos=hist_z_mass_halos_temp, bin_edges_z=bin_edges_z, bin_edges_mass=bin_edges_mass)
-    np.savez(output_2Dhist_subhalo, hist_z_mass_subs=hist_z_mass_subs_temp, bin_edges_z=bin_edges_z, bin_edges_mass=bin_edges_mass)
 
     count_files_processed += 1
     print(f"Finished processing files for file ending {i}.")
