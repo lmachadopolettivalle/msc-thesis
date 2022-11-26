@@ -467,7 +467,8 @@ for i in range(num_files):
     # order by descending mass, along the 1st column, only first l rows
     halo_subhalo_array_sorted = halo_subhalo_array[halo_subhalo_array[:,1].argsort()][::-1][:l,:]
 
-    np.savetxt(output_subhalo_filename, halo_subhalo_array_sorted, fmt='%d %.8e %.8f %.8e %.8e %.8e %.8e %.8e %d %.8e %.8e %d')
+    with open(output_subhalo_filename, 'w') as f:
+        np.savetxt(f, halo_subhalo_array_sorted, fmt='%d %.8e %.8f %.8e %.8e %.8e %.8e %.8e %d %.8e %.8e %d')
 
     count_files_processed += 1
     print(f"Finished processing files for file ending {i}.")

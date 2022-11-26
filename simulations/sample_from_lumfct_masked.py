@@ -230,9 +230,12 @@ index_tot = np.concatenate((index_red, index_blue))
 # ----------------------------------------------------
 # SAVE GALAXIES TO NPY FILES
 # -----------------------------------------------------
-np.save(outfile_dir+outfile_z, z_tot)
-np.save(outfile_dir+outfile_absmag, abs_mag_tot)
-np.save(outfile_dir+outfile_redblue, index_tot)
+with open(outfile_dir + outfile_z, 'wb') as f:
+    np.save(f, z_tot)
+with open(outfile_dir + outfile_absmag, 'wb') as f:
+    np.save(f, abs_mag_tot)
+with open(outfile_dir + outfile_redblue, 'wb') as f:
+    np.save(f, index_tot)
 
 # ----------------------------------------------------
 # SOME PRINT STATEMENTS

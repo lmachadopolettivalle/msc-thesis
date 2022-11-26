@@ -454,18 +454,27 @@ for i in range(num_files):
 # SAVE OUTPUT
 # -----------------------------------------------------
 # each property in a separate npy file
-np.save(outfile_dir+outfile_galaxies_base+'z', z)
-np.save(outfile_dir+outfile_galaxies_base+'abs_mag', abs_mag)
-np.save(outfile_dir+outfile_galaxies_base+'blue_red', blue_red)
+with open(outfile_dir + outfile_galaxies_base + "z.npy", 'wb') as f:
+    np.save(f, z)
+with open(outfile_dir + outfile_galaxies_base + "abs_mag.npy", 'wb') as f:
+    np.save(f, abs_mag)
+with open(outfile_dir + outfile_galaxies_base + "blue_red.npy", 'wb') as f:
+    np.save(f, blue_red)
 
 for k, values in app_mag_dict.items():
-    np.save(outfile_dir+outfile_galaxies_base + f"app_mag_{k}", values)
+    with open(outfile_dir + outfile_galaxies_base + f"app_mag_{k}.npy", 'wb') as f:
+        np.save(f, values)
 
-np.save(outfile_dir+outfile_galaxies_base+'halo_mass', halo_mass)
-np.save(outfile_dir+outfile_galaxies_base+'x_coord', x_coord)
-np.save(outfile_dir+outfile_galaxies_base+'y_coord', y_coord)
-np.save(outfile_dir+outfile_galaxies_base+'z_coord', z_coord)
-np.save(outfile_dir+outfile_galaxies_base+'host_sub_index', host_sub_index)
+with open(outfile_dir + outfile_galaxies_base + "halo_mass.npy", 'wb') as f:
+    np.save(f, halo_mass)
+with open(outfile_dir + outfile_galaxies_base + "x_coord.npy", 'wb') as f:
+    np.save(f, x_coord)
+with open(outfile_dir + outfile_galaxies_base + "y_coord.npy", 'wb') as f:
+    np.save(f, y_coord)
+with open(outfile_dir + outfile_galaxies_base + "z_coord.npy", 'wb') as f:
+    np.save(f, z_coord)
+with open(outfile_dir + outfile_galaxies_base + "host_sub_index.npy", 'wb') as f:
+    np.save(f, host_sub_index)
 
 # ----------------------------------------------------–
 # SOME PRINT STATEMENTS
