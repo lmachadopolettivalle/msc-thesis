@@ -25,7 +25,10 @@ REGIONS = (BASS_MzLS, )
 
 # Number of particles (cube root) used in run
 # This determines the path where the data is stored
-PARTICLE_COUNT_PINOCCHIO = 512
+PARTICLE_COUNT_PINOCCHIO = 2048
+
+# Path where to save 2PCF computed values
+PATH_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/2PCF/"
 
 # Load x, y, z positions
 # Path to output data from SHAM
@@ -150,9 +153,9 @@ for color_name, color_value in (("blue", BLUE), ("red", RED)):
             DR_counts, RR_counts
         )
 
-        with open(f"simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy", "wb") as f:
+        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy", "wb") as f:
             np.save(f, bins[:-1])
-        with open(f"simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy", "wb") as f:
+        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy", "wb") as f:
             np.save(f, wtheta)
 
 print("Done computing 2PCF")

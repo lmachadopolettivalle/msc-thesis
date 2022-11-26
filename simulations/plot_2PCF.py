@@ -1,6 +1,13 @@
 from matplotlib import pyplot as plt
 import numpy as np
 
+# Number of particles (cube root) used in run
+# This determines the path where the data is stored
+PARTICLE_COUNT_PINOCCHIO = 2048
+
+PATH_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/2PCF/"
+
+
 # Parameters for plotting
 plt.rcParams["font.size"] = "12"
 LINEWIDTH = 2
@@ -16,9 +23,9 @@ rmag_bins = [
 
 for color_name in ("blue", "red"):
     for rmag_low, rmag_high in rmag_bins:
-        with open(f"simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy", "rb") as f:
+        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy", "rb") as f:
             bins = np.load(f)
-        with open(f"simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy", "rb") as f:
+        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy", "rb") as f:
             wtheta = np.load(f)
 
         plt.plot(
@@ -38,6 +45,6 @@ for color_name in ("blue", "red"):
     plt.ylim([1e-4, 100])
     plt.grid()
 
-    #plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_BASS_simulated_{color_name}.pdf")
+    plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_BASS_simulated_{color_name}_{PARTICLE_COUNT_PINOCCHIO}.pdf")
 
     plt.show()
