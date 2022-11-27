@@ -19,6 +19,7 @@ print("Importing required libraries...")
 
 import numpy as np
 import os
+import pandas as pd
 import re
 from tqdm import tqdm
 
@@ -102,7 +103,10 @@ hist_z_mass_subs, bin_edges_z, bin_edges_mass = np.histogram2d([], [], bins=(bin
 print("Starting to process halo/subhalo files to create 2D histograms...")
 for filename in tqdm(FILENAMES):
     print(f"Processing file {filename}...")
-    masses, redshifts, is_halo = np.loadtxt(f"{dirname}/{filename}", unpack=True, usecols=(1, 2, 8))
+    data = pd.read_csv(f"{dirname}/{filename}", sep='\s+', lineterminator='\n', header=None, index_col=None, skipinitialspace=True).values
+    masses = data[:, 1]
+    redshifts = data[:, 2]
+    is_halo = data[:, 8]
 
     halo_mask = (is_halo == 1)
     subhalo_mask = (is_halo == 0)

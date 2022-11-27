@@ -22,6 +22,7 @@ from halotools.empirical_models import NFWProfile # ATTENTION: needs hdf5 and py
 import healpy as hp
 import numpy as np
 import os
+import pandas as pd
 import re
 from tqdm import tqdm
 
@@ -277,7 +278,9 @@ def loop_dict(l):
 # -----------------------------------------------------
 
 # Get linear growth rate for each redshift
-scale_factor_sorted, growth_rate_sorted = np.loadtxt(dirname+cosmology_file, unpack=True, usecols=(0,2))
+data = pd.read_csv(dirname+cosmology_file, sep='\s+', lineterminator='\n', header=None, index_col=None, skipinitialspace=True).values
+scale_factor_sorted = data[:, 0]
+growth_rate_sorted = data[:, 2]
 # preparation for interpolation later
 redshift_sorted = 1./scale_factor_sorted - 1.
 
@@ -293,7 +296,14 @@ num_part = np.array([])
 num_part_merged_with = np.array([])
 acc_red = np.array([])
 for i in range(num_files):
-    (groupid_temp, treeind_temp, merged_with_temp, num_part_temp, num_part_merged_with_temp, acc_red_temp) = np.loadtxt(dirname+history_file+file_ending[i], skiprows=15, unpack=True, usecols=(0,1,3,4,5,6))
+    data = pd.read_csv(dirname+history_file+file_ending[i], sep='\s+', lineterminator='\n', header=None, index_col=None, skiprows=16, comment='#').values
+    groupid_temp = data[:, 0]
+    treeind_temp = data[:, 1]
+    merged_with_temp = data[:, 3]
+    num_part_temp = data[:, 4]
+    num_part_merged_with_temp = data[:, 5]
+    acc_red_temp = data[:, 6]
+
     groupid = np.concatenate((groupid, groupid_temp), axis=None)
     treeind = np.concatenate((treeind, treeind_temp), axis=None)
     merged_with = np.concatenate((merged_with, merged_with_temp), axis=None)
@@ -408,7 +418,13 @@ for i in range(num_files):
     # ------------------------------
     # LOAD ONE LIGHTCONE FILE
     # ------------------------------
-    (M, haloid, redshift, X, Y, Z) = np.loadtxt(input_halo_filename, unpack=True, usecols=(8,0,1,2,3,4))
+    data = pd.read_csv(input_halo_filename, sep='\s+', lineterminator='\n', header=None, index_col=None, skipinitialspace=True).values
+    haloid = data[:, 0]
+    redshift = data[:, 1]
+    X = data[:, 2]
+    Y = data[:, 3]
+    Z = data[:, 4]
+    M = data[:, 8]
     # ------------------------------
     # APPLY PIXEL MASK and DEC LIMITS
     # ------------------------------
