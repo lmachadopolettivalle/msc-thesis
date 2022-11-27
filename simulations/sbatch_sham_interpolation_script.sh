@@ -8,4 +8,4 @@
 #SBATCH -e /cluster/home/lmachado/msc-thesis/simulations/sham_interpolation_error_2048
 #SBATCH --mail-type=FAIL
 
-/cluster/home/lmachado/venv/bin/python sham_interpolation.py
+/cluster/home/lmachado/venv/bin/python -u sham_interpolation.py

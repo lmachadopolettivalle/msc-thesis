@@ -7,4 +7,4 @@
 #SBATCH -e /cluster/home/lmachado/msc-thesis/simulations/2D_hist_error_2048
 #SBATCH --mail-type=FAIL
 
-/cluster/home/lmachado/venv/bin/python construct_2D_hists.py
+/cluster/home/lmachado/venv/bin/python -u construct_2D_hists.py

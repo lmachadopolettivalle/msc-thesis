@@ -8,4 +8,4 @@
 #SBATCH -e /cluster/home/lmachado/msc-thesis/simulations/subhalos_error_2048
 #SBATCH --mail-type=FAIL
 
-/cluster/home/lmachado/venv/bin/python compute_subhalos_from_pinocchio.py
+/cluster/home/lmachado/venv/bin/python -u compute_subhalos_from_pinocchio.py

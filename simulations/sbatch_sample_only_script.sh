@@ -7,4 +7,4 @@
 #SBATCH -e /cluster/home/lmachado/msc-thesis/simulations/sample_only_error_2048
 #SBATCH --mail-type=FAIL
 
-/cluster/home/lmachado/venv/bin/python sample_from_lumfct_masked.py
+/cluster/home/lmachado/venv/bin/python -u sample_from_lumfct_masked.py
