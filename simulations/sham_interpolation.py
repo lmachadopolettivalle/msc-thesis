@@ -10,7 +10,7 @@
 # Author: Pascale Berner
 # Co-Author: Luis Machado
 # first written: 17.11.2022
-# last adapted: 21.11.2022
+# last adapted: 28.11.2022
 # partially copied from: sample_from_lum_fct_interp_pin_desi.py etc.
 
 # ----------------------------------------------------
@@ -18,9 +18,11 @@
 # -----------------------------------------------------
 print("Importing required libraries...")
 
+import concurrent.futures
 import h5py
 import numpy as np
 import os
+import pandas as pd
 import PyCosmo
 import re
 from scipy.interpolate import griddata
@@ -217,20 +219,25 @@ class MagCalculatorTable(object):
 # DEFINE FUNCTIONS
 # -----------------------------------------------------
 # DEFINE MAGNITUDE CALCULATOR
+print("Starting magnitude calculations...")
 
 MAGNITUDES_CALCULATOR = {'table': MagCalculatorTable}
 filter_wavelengths = io_util.load_from_hdf5(filters_file_name, [i+'/lam' for i in loop_filter_names], root_path=maps_remote_dir)
+print("Loaded first hdf5")
 filter_amplitudes = io_util.load_from_hdf5(filters_file_name, [i+'/amp' for i in loop_filter_names], root_path=maps_remote_dir)
+print("Loaded second hdf5")
 filter_lam = {loop_filter_names[i]: filter_wavelengths[i] for i in range(len(loop_filter_names))}
 filter_amp = {loop_filter_names[i]: filter_amplitudes[i] for i in range(len(loop_filter_names))}
 
 loop_filters = Filter(lam=filter_lam, amp=filter_amp)
 mag_calc = MAGNITUDES_CALCULATOR[magnitude_calculation](loop_filters)
 n_templates = mag_calc.n_templates_dict[lum_fct_filter_band]
+print("Finished n_templates")
 
 # ----------------------------------------------------–
 # LOAD GALAXIES
 # -----------------------------------------------------
+
 abs_mag = np.load(infile_ucat_sampling_dir + infile_ucat_absmag)
 z_ucat = np.load(infile_ucat_sampling_dir + infile_ucat_z)
 blue_red = np.load(infile_ucat_sampling_dir + infile_ucat_redblue)
@@ -243,11 +250,13 @@ z_blue = z_ucat[blue_red == BLUE]
 # ----------------------------------------------------–
 # LOAD HALO-SUBHALO HISTOGRAMS
 # -----------------------------------------------------
+print("Loading hist halos")
 with np.load(infile_hist2D_dir + infile_hist_halos) as data:
 	hist_z_mass_halos=data['hist_z_mass_halos']
 	bin_edges_z=data['bin_edges_z']
 	bin_edges_mass=data['bin_edges_mass']
 
+print("Loading hist subhalos")
 with np.load(infile_hist2D_dir + infile_hist_subhalos) as data:
 	hist_z_mass_subs=data['hist_z_mass_subs']
 
@@ -258,6 +267,7 @@ num_mass_bins = len(bin_edges_mass) - 1
 # CREATE 2D HISTOGRAMS FOR RED vs. BLUE
 # -----------------------------------------------------
 # find index to match M_limit to a value in bin_edges_mass
+print("Finding index")
 idx_lim = (np.abs(bin_edges_mass - M_limit)).argmin()
 M_limit_effective = bin_edges_mass[idx_lim]
 
@@ -286,6 +296,8 @@ lim_abs_mag_blue[:] = np.nan
 
 num_z = num_z_bins + 1
 num_mass = num_mass_bins + 1
+
+print("Starting loop redshift")
 for i in range(num_z - 1):  # loop over redshift, starting at low z
 	abs_mag_red_i = abs_mag_red[(z_red > bin_edges_z[i]) & (z_red <= bin_edges_z[i+1])]
 	abs_mag_blue_i = abs_mag_blue[(z_blue > bin_edges_z[i]) & (z_blue <= bin_edges_z[i+1])]
@@ -322,6 +334,7 @@ for i in range(num_z - 1):  # loop over redshift, starting at low z
 # ----------------------------------------------------–
 # SAVE INTERPOLATION PROPERTIES
 # -----------------------------------------------------
+print("Saving npz files")
 np.savez(outfile_dir + output_interp_red, lim_abs_mag_red=lim_abs_mag_red, bin_edges_z=bin_edges_z, bin_edges_mass=bin_edges_mass)
 np.savez(outfile_dir + output_interp_blue, lim_abs_mag_blue=lim_abs_mag_blue, bin_edges_z=bin_edges_z, bin_edges_mass=bin_edges_mass)
 
@@ -332,33 +345,64 @@ mass_edges_stacked = np.reshape(np.tile(bin_edges_mass, len(bin_edges_z)), (len(
 z_edges_stacked = np.reshape(np.ndarray.flatten(np.transpose(np.tile(bin_edges_z, (len(bin_edges_mass), 1)))), (len(bin_edges_mass)*len(bin_edges_z),))
 
 # ----------------------------------------------------–
-# PREPARE EMPTY ARRAYS FOR GALAXIES
+# LOAD HALO-SUBHALO FILES INTO MEMORY
 # -----------------------------------------------------
-z = np.array([])
-abs_mag = np.array([])
-blue_red = np.array([])
+print("Loading halo subhalo files...")
 
-app_mag_dict = {
-    k: np.array([])
-    for k in desired_filters.keys()
-}
+loaded_halo_subhalo_data = {}
 
-halo_mass = np.array([])
-x_coord = np.array([])
-y_coord = np.array([])
-z_coord = np.array([])
-host_sub_index = np.array([])
+def load_halo_subhalo_file(i):
+    filename = infile_halos_dir + infile_halos + file_ending[i] + '.txt'
+    data = pd.read_csv(filename, sep='\s+', lineterminator='\n', header=None, index_col=None, skipinitialspace=True).values
 
-n_uncut = 0
-n_blue_uncut = 0
-# ----------------------------------------------------–
-# LOOP OVER HALO-SUBHALO FILES
-# -----------------------------------------------------
-for i in range(num_files):
+    mass = data[:, 1]
+    z_pin = data[:, 2]
+    x_coord_pin = data[:, 3]
+    y_coord_pin = data[:, 4]
+    z_coord_pin = data[:, 5]
+    host_sub = data[:, 8]
+
+    return (
+        mass,
+        z_pin,
+        x_coord_pin,
+        y_coord_pin,
+        z_coord_pin,
+        host_sub,
+    )
+with concurrent.futures.ThreadPoolExecutor() as executor:
+    indices = list(range(num_files))
+
+    for i, result in zip(
+        indices,
+        executor.map(load_halo_subhalo_file, indices)
+    ):
+        mass, z_pin, x_coord_pin, y_coord_pin, z_coord_pin, host_sub = result
+
+        loaded_halo_subhalo_data[i] = {}
+
+        loaded_halo_subhalo_data[i]["mass"] = mass
+        loaded_halo_subhalo_data[i]["z_pin"] = z_pin
+        loaded_halo_subhalo_data[i]["x_coord_pin"] = x_coord_pin
+        loaded_halo_subhalo_data[i]["y_coord_pin"] = y_coord_pin
+        loaded_halo_subhalo_data[i]["z_coord_pin"] = z_coord_pin
+        loaded_halo_subhalo_data[i]["host_sub"] = host_sub
+
+
+def process_halo_subhalo_file(i):
+    """Given a file index i (int), process the corresponding halo subhalo file,
+    and generate a catalog of galaxies assigned to the loaded halos and subhalos
+    using SHAM.
+    """
     # ----------------------------------------------------–
     # LOAD HALO-SUBHALO FILE
     # -----------------------------------------------------
-    mass, z_pin, x_coord_pin, y_coord_pin, z_coord_pin, host_sub = np.loadtxt(infile_halos_dir + infile_halos + file_ending[i] + '.txt', usecols=(1,2,3,4,5,8), unpack=True)
+    mass = loaded_halo_subhalo_data[i]["mass"]
+    z_pin = loaded_halo_subhalo_data[i]["z_pin"]
+    x_coord_pin = loaded_halo_subhalo_data[i]["x_coord_pin"]
+    y_coord_pin = loaded_halo_subhalo_data[i]["y_coord_pin"]
+    z_coord_pin = loaded_halo_subhalo_data[i]["z_coord_pin"]
+    host_sub = loaded_halo_subhalo_data[i]["host_sub"]
 
     # ----------------------------------------------------–
     # DIVIDE HALOS AND SUBHALOS INTO RED AND BLUE
@@ -367,8 +411,8 @@ for i in range(num_files):
     mask_blue = ~ mask_red
     n_blue = len(z_pin[mask_blue])
 
-    n_blue_uncut += n_blue
-    n_uncut += len(z_pin)
+    n_uncut_temp = len(z_pin)
+    n_blue_uncut_temp = n_blue
     # ----------------------------------------------------–
     # GET ABSOLUTE MAGNITUDES FOR NEW GALAXIES
     # -----------------------------------------------------
@@ -433,23 +477,64 @@ for i in range(num_files):
     y_coord_temp = y_coord_temp[mask_mag_range]
     z_coord_temp = z_coord_temp[mask_mag_range]
     host_sub_index_temp = host_sub_index_temp[mask_mag_range]
-    # ----------------------------------------------------–
-    # APPEND REMAINING GALAXIES
-    # -----------------------------------------------------
-    z = np.append(z, z_temp)
-    abs_mag = np.append(abs_mag, abs_mag_temp)
-    blue_red = np.append(blue_red, blue_red_temp)
 
-    for k in app_mag_dict.keys():
-        app_mag_dict[k] = np.append(app_mag_dict[k], temp_app_mag_dict[k])
+    return (
+        n_uncut_temp,
+        n_blue_uncut_temp,
+        z_temp,
+        abs_mag_temp,
+        blue_red_temp,
+        temp_app_mag_dict,
+        halo_mass_temp,
+        x_coord_temp,
+        y_coord_temp,
+        z_coord_temp,
+        host_sub_index_temp,
+    )
 
-    halo_mass = np.append(halo_mass, halo_mass_temp)
-    x_coord = np.append(x_coord, x_coord_temp)
-    y_coord = np.append(y_coord, y_coord_temp)
-    z_coord = np.append(z_coord, z_coord_temp)
-    host_sub_index = np.append(host_sub_index, host_sub_index_temp)
+# ----------------------------------------------------–
+# PREPARE EMPTY ARRAYS FOR GALAXIES
+# -----------------------------------------------------
+n_uncut = 0
+n_blue_uncut = 0
 
-# end of loop
+z = np.array([])
+abs_mag = np.array([])
+blue_red = np.array([])
+
+app_mag_dict = {
+    k: np.array([])
+    for k in desired_filters.keys()
+}
+
+halo_mass = np.array([])
+x_coord = np.array([])
+y_coord = np.array([])
+z_coord = np.array([])
+host_sub_index = np.array([])
+
+# Submit parallelized job
+
+with concurrent.futures.ProcessPoolExecutor() as executor:
+    for result in executor.map(process_halo_subhalo_file, list(range(num_files))):
+        n_uncut_temp, n_blue_uncut_temp, z_temp, abs_mag_temp, blue_red_temp, temp_app_mag_dict, halo_mass_temp, x_coord_temp, y_coord_temp, z_coord_temp, host_sub_index_temp = result
+
+        n_uncut += n_uncut_temp
+        n_blue_uncut += n_blue_uncut_temp
+
+        z = np.append(z, z_temp)
+        abs_mag = np.append(abs_mag, abs_mag_temp)
+        blue_red = np.append(blue_red, blue_red_temp)
+
+        for k in app_mag_dict.keys():
+            app_mag_dict[k] = np.append(app_mag_dict[k], temp_app_mag_dict[k])
+
+        halo_mass = np.append(halo_mass, halo_mass_temp)
+        x_coord = np.append(x_coord, x_coord_temp)
+        y_coord = np.append(y_coord, y_coord_temp)
+        z_coord = np.append(z_coord, z_coord_temp)
+        host_sub_index = np.append(host_sub_index, host_sub_index_temp)
+
 # ----------------------------------------------------–
 # SAVE OUTPUT
 # -----------------------------------------------------

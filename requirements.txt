@@ -19,6 +19,7 @@ halotools
 # PINOCCHIO
 
 # PyCosmo, UFig, UCat
+pandas
 six
 dask
 recfast4py
