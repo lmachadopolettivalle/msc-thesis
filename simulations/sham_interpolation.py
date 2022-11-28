@@ -347,47 +347,6 @@ z_edges_stacked = np.reshape(np.ndarray.flatten(np.transpose(np.tile(bin_edges_z
 # ----------------------------------------------------–
 # LOAD HALO-SUBHALO FILES INTO MEMORY
 # -----------------------------------------------------
-print("Loading halo subhalo files...")
-
-loaded_halo_subhalo_data = {}
-
-def load_halo_subhalo_file(i):
-    filename = infile_halos_dir + infile_halos + file_ending[i] + '.txt'
-    data = pd.read_csv(filename, sep='\s+', lineterminator='\n', header=None, index_col=None, skipinitialspace=True).values
-
-    mass = data[:, 1]
-    z_pin = data[:, 2]
-    x_coord_pin = data[:, 3]
-    y_coord_pin = data[:, 4]
-    z_coord_pin = data[:, 5]
-    host_sub = data[:, 8]
-
-    return (
-        mass,
-        z_pin,
-        x_coord_pin,
-        y_coord_pin,
-        z_coord_pin,
-        host_sub,
-    )
-with concurrent.futures.ThreadPoolExecutor() as executor:
-    indices = list(range(num_files))
-
-    for i, result in zip(
-        indices,
-        executor.map(load_halo_subhalo_file, indices)
-    ):
-        mass, z_pin, x_coord_pin, y_coord_pin, z_coord_pin, host_sub = result
-
-        loaded_halo_subhalo_data[i] = {}
-
-        loaded_halo_subhalo_data[i]["mass"] = mass
-        loaded_halo_subhalo_data[i]["z_pin"] = z_pin
-        loaded_halo_subhalo_data[i]["x_coord_pin"] = x_coord_pin
-        loaded_halo_subhalo_data[i]["y_coord_pin"] = y_coord_pin
-        loaded_halo_subhalo_data[i]["z_coord_pin"] = z_coord_pin
-        loaded_halo_subhalo_data[i]["host_sub"] = host_sub
-
 
 def process_halo_subhalo_file(i):
     """Given a file index i (int), process the corresponding halo subhalo file,
@@ -397,12 +356,15 @@ def process_halo_subhalo_file(i):
     # ----------------------------------------------------–
     # LOAD HALO-SUBHALO FILE
     # -----------------------------------------------------
-    mass = loaded_halo_subhalo_data[i]["mass"]
-    z_pin = loaded_halo_subhalo_data[i]["z_pin"]
-    x_coord_pin = loaded_halo_subhalo_data[i]["x_coord_pin"]
-    y_coord_pin = loaded_halo_subhalo_data[i]["y_coord_pin"]
-    z_coord_pin = loaded_halo_subhalo_data[i]["z_coord_pin"]
-    host_sub = loaded_halo_subhalo_data[i]["host_sub"]
+    filename = infile_halos_dir + infile_halos + file_ending[i] + '.txt'
+    data = pd.read_csv(filename, sep='\s+', lineterminator='\n', header=None, index_col=None, skipinitialspace=True).values
+
+    mass = data[:, 1].copy()
+    z_pin = data[:, 2].copy()
+    x_coord_pin = data[:, 3].copy()
+    y_coord_pin = data[:, 4].copy()
+    z_coord_pin = data[:, 5].copy()
+    host_sub = data[:, 8].copy()
 
     # ----------------------------------------------------–
     # DIVIDE HALOS AND SUBHALOS INTO RED AND BLUE
@@ -513,27 +475,27 @@ y_coord = np.array([])
 z_coord = np.array([])
 host_sub_index = np.array([])
 
-# Submit parallelized job
+print("Processing halo subhalo files...")
+for i in range(num_files):
+    print(f"Processing file index {i}...")
 
-with concurrent.futures.ProcessPoolExecutor() as executor:
-    for result in executor.map(process_halo_subhalo_file, list(range(num_files))):
-        n_uncut_temp, n_blue_uncut_temp, z_temp, abs_mag_temp, blue_red_temp, temp_app_mag_dict, halo_mass_temp, x_coord_temp, y_coord_temp, z_coord_temp, host_sub_index_temp = result
+    n_uncut_temp, n_blue_uncut_temp, z_temp, abs_mag_temp, blue_red_temp, temp_app_mag_dict, halo_mass_temp, x_coord_temp, y_coord_temp, z_coord_temp, host_sub_index_temp = process_halo_subhalo_file(i)
 
-        n_uncut += n_uncut_temp
-        n_blue_uncut += n_blue_uncut_temp
+    n_uncut += n_uncut_temp
+    n_blue_uncut += n_blue_uncut_temp
 
-        z = np.append(z, z_temp)
-        abs_mag = np.append(abs_mag, abs_mag_temp)
-        blue_red = np.append(blue_red, blue_red_temp)
+    z = np.append(z, z_temp)
+    abs_mag = np.append(abs_mag, abs_mag_temp)
+    blue_red = np.append(blue_red, blue_red_temp)
 
-        for k in app_mag_dict.keys():
-            app_mag_dict[k] = np.append(app_mag_dict[k], temp_app_mag_dict[k])
+    for k in app_mag_dict.keys():
+        app_mag_dict[k] = np.append(app_mag_dict[k], temp_app_mag_dict[k])
 
-        halo_mass = np.append(halo_mass, halo_mass_temp)
-        x_coord = np.append(x_coord, x_coord_temp)
-        y_coord = np.append(y_coord, y_coord_temp)
-        z_coord = np.append(z_coord, z_coord_temp)
-        host_sub_index = np.append(host_sub_index, host_sub_index_temp)
+    halo_mass = np.append(halo_mass, halo_mass_temp)
+    x_coord = np.append(x_coord, x_coord_temp)
+    y_coord = np.append(y_coord, y_coord_temp)
+    z_coord = np.append(z_coord, z_coord_temp)
+    host_sub_index = np.append(host_sub_index, host_sub_index_temp)
 
 # ----------------------------------------------------–
 # SAVE OUTPUT

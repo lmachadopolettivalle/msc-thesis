@@ -17,11 +17,12 @@
 
 print("Importing required libraries...")
 
+import argparse
+import concurrent.futures
 import numpy as np
 import os
 import pandas as pd
 import re
-from tqdm import tqdm
 
 print("Done importing libraries.")
 
@@ -29,9 +30,15 @@ print("Done importing libraries.")
 # Interpolation parameters
 # Can be modified and fine-tuned
 # ------------------------------
-num_z_bins = 150
-num_mass_bins = 30
+parser = argparse.ArgumentParser()
 
+parser.add_argument("--num_z_bins", type=int, required=True)
+parser.add_argument("--num_mass_bins", type=int, required=True)
+
+args = parser.parse_args()
+
+num_z_bins = args.num_z_bins
+num_mass_bins = args.num_mass_bins
 
 # ------------------------------
 # Configurations, filenames and directories
@@ -101,7 +108,9 @@ hist_z_mass_subs, bin_edges_z, bin_edges_mass = np.histogram2d([], [], bins=(bin
 
 # For each subhalo file, generate the corresponding histograms
 print("Starting to process halo/subhalo files to create 2D histograms...")
-for filename in tqdm(FILENAMES):
+def process_halo_subhalo_file(filename):
+    global bin_edges_z
+    global bin_edges_mass
     print(f"Processing file {filename}...")
     data = pd.read_csv(f"{dirname}/{filename}", sep='\s+', lineterminator='\n', header=None, index_col=None, skipinitialspace=True).values
     masses = data[:, 1]
@@ -120,11 +129,18 @@ for filename in tqdm(FILENAMES):
     # ------------------------------
     # CALCULATE 2D HISTOGRAMS
     # ------------------------------
-    hist_z_mass_halos_temp, bin_edges_z, bin_edges_mass = np.histogram2d(halo_redshifts, halo_masses, bins=(bin_edges_z, bin_edges_mass))
-    hist_z_mass_subs_temp, bin_edges_z, bin_edges_mass = np.histogram2d(subhalo_redshifts, subhalo_masses, bins=(bin_edges_z, bin_edges_mass))
+    hist_z_mass_halos_temp, bin_edges_z_temp, bin_edges_mass_temp = np.histogram2d(halo_redshifts, halo_masses, bins=(bin_edges_z, bin_edges_mass))
+    hist_z_mass_subs_temp, bin_edges_z_temp, bin_edges_mass_temp = np.histogram2d(subhalo_redshifts, subhalo_masses, bins=(bin_edges_z, bin_edges_mass))
 
-    hist_z_mass_halos += hist_z_mass_halos_temp
-    hist_z_mass_subs += hist_z_mass_subs_temp
+    return (hist_z_mass_halos_temp, hist_z_mass_subs_temp, bin_edges_z_temp, bin_edges_mass_temp)
+
+
+with concurrent.futures.ProcessPoolExecutor() as executor:
+    for result in executor.map(process_halo_subhalo_file, FILENAMES):
+        hist_z_mass_halos_temp, hist_z_mass_subs_temp, bin_edges_z, bin_edges_mass = result
+
+        hist_z_mass_halos += hist_z_mass_halos_temp
+        hist_z_mass_subs += hist_z_mass_subs_temp
 
 # ------------------------------
 # SAVE 2D HISTOGRAMS TO FILES
