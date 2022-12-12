@@ -3,9 +3,6 @@
 #SBATCH -n 24
 #SBATCH -N 1
 #SBATCH -t 01:00:00
-#SBATCH -J sham_interpolation_job_2048
-#SBATCH -o /cluster/home/lmachado/msc-thesis/simulations/sham_interpolation_output_2048
-#SBATCH -e /cluster/home/lmachado/msc-thesis/simulations/sham_interpolation_error_2048
 #SBATCH --mail-type=FAIL
 
-/cluster/home/lmachado/venv/bin/python -u sham_interpolation.py
+/cluster/home/lmachado/venv/bin/python -u sham_interpolation.py --run_id ${run_id} --particle_count_pinocchio ${particle_count_pinocchio} --region ${region}

@@ -24,6 +24,8 @@ import os
 import pandas as pd
 import re
 
+from manage_parameter_space import get_details_of_run
+
 print("Done importing libraries.")
 
 # ------------------------------
@@ -32,21 +34,22 @@ print("Done importing libraries.")
 # ------------------------------
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--num_z_bins", type=int, required=True)
-parser.add_argument("--num_mass_bins", type=int, required=True)
+parser.add_argument("--run_id", type=int, required=True)
+parser.add_argument("--particle_count_pinocchio", type=int, required=True)
 
 args = parser.parse_args()
 
-num_z_bins = args.num_z_bins
-num_mass_bins = args.num_mass_bins
+run_id = args.run_id
+particle_count_pinocchio = args.particle_count_pinocchio
+
+# Get details of run
+run_details = get_details_of_run(run_id)
+num_z_bins = run_details["num_z_bins"]
+num_mass_bins = run_details["num_mass_bins"]
 
 # ------------------------------
 # Configurations, filenames and directories
 # ------------------------------
-
-# Cube root of number of particles used.
-# This is present in the paths to different input files used in this script.
-particle_count_pinocchio = 2048
 
 pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
 
@@ -61,9 +64,25 @@ FILENAMES = [
     if halo_subhalo_files in name
 ]
 
-hist_2D_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/halo_subhalo_plc/"
-hist_2D_halo_file = "TESTpinocchio_masked_halos_hist2D"
-hist_2D_subhalo_file = "TESTpinocchio_masked_subhalos_hist2D"
+run_directory = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/{run_id}/"
+if os.path.isdir(run_directory):
+    print(f"{run_directory} directory already exists.")
+else:
+    print(f"Creating new output directory, {run_directory} ...")
+    os.mkdir(run_directory)
+    print("Created output directory successfully.")
+
+hist_2D_dir = f"{run_directory}/halo_subhalo_plc/"
+
+hist_2D_halo_file = "pinocchio_masked_halos_hist2D"
+hist_2D_subhalo_file = "pinocchio_masked_subhalos_hist2D"
+
+if os.path.isdir(hist_2D_dir):
+    print(f"{hist_2D_dir} directory already exists.")
+else:
+    print(f"Creating new output directory, {hist_2D_dir} ...")
+    os.mkdir(hist_2D_dir)
+    print("Created output directory successfully.")
 
 
 # ---------------------------------

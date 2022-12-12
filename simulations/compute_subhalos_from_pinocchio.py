@@ -63,14 +63,6 @@ plc_file = f'pinocchio.{RUN_FLAG}.plc.out'
 history_file = f'pinocchio.{RUN_FLAG}.histories.out'
 
 # Create output directory
-outfile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/halo_subhalo_plc/"
-if os.path.isdir(outfile_dir):
-    print(f"{outfile_dir} directory already exists.")
-else:
-    print(f"Creating new output directory, {outfile_dir} ...")
-    os.mkdir(outfile_dir)
-    print("Created output directory successfully.")
-
 outfile_halos = 'pinocchio_masked_halos_subhalos_plc'
 
 # ------------------------------------------
@@ -188,7 +180,6 @@ print('cosmology_file = ' + cosmology_file)
 print('plf_file = ' + plc_file)
 print('history_file = ' + history_file)
 print('outfile_halos = ' + outfile_halos)
-print('outfile_dir = ' + outfile_dir)
 print('m_part = ' + str(m_part))
 print('min_num_part = ' + str(min_num_part))
 print('num_rep = ' + str(num_rep))

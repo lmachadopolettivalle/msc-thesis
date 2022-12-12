@@ -5,7 +5,10 @@ import numpy as np
 # This determines the path where the data is stored
 PARTICLE_COUNT_PINOCCHIO = 2048
 
-PATH_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/2PCF/"
+# TODO determine run_id via some better way, or loop through all existing run_id values
+run_id = 100
+
+PATH_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{run_id}/2PCF/"
 
 
 # Parameters for plotting

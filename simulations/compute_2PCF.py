@@ -27,12 +27,22 @@ REGIONS = (BASS_MzLS, )
 # This determines the path where the data is stored
 PARTICLE_COUNT_PINOCCHIO = 2048
 
+# TODO determine run_id via some better way, or loop through all existing run_id values
+run_id = 100
+
 # Path where to save 2PCF computed values
-PATH_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/2PCF/"
+PATH_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{run_id}/2PCF/"
+if os.path.isdir(PATH_2PCF):
+    print(f"{PATH_2PCF} directory already exists.")
+else:
+    print(f"Creating new output directory, {PATH_2PCF} ...")
+    os.mkdir(PATH_2PCF)
+    print("Created output directory successfully.")
 
 # Load x, y, z positions
 # Path to output data from SHAM
-SHAM_OUTPUT_PATH = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/interpolation_outputs/"
+
+SHAM_OUTPUT_PATH = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{run_id}/interpolation_outputs/"
 
 galaxies = {}
 for coord in ("x_coord", "y_coord", "z_coord"):

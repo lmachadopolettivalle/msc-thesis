@@ -14,7 +14,9 @@ DECaLS_SGC = "DECaLS-SGC"
 PARTICLE_COUNT_PINOCCHIO = 512
 
 # Path to output data from SHAM
-SHAM_OUTPUT_PATH = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/interpolation_outputs/"
+# TODO determine run_id via some better way, or loop through all existing run_id values
+run_id = 100
+SHAM_OUTPUT_PATH = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{run_id}/interpolation_outputs/"
 SHAM_OUTPUT_FILENAME_PREFIX = "ucat_sorted_app_mag_interp_app_mag_"
 
 # Parameters for plotting
