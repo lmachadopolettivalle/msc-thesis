@@ -48,6 +48,6 @@ for color_name in ("blue", "red"):
     plt.ylim([1e-4, 100])
     plt.grid()
 
-    plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_BASS_simulated_{color_name}_{PARTICLE_COUNT_PINOCCHIO}.pdf")
+    plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_BASS_simulated_{color_name}_{PARTICLE_COUNT_PINOCCHIO}_{run_id}.pdf")
 
     plt.show()

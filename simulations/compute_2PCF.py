@@ -4,6 +4,7 @@
 # and compute the angular correlation function
 
 import numpy as np
+import os
 
 import Corrfunc
 from Corrfunc.mocks.DDtheta_mocks import DDtheta_mocks
