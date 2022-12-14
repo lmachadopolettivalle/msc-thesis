@@ -59,12 +59,14 @@ M_limit = run_details["mass_cut"] # mass limit for assigning blue or red galaxie
 # NOTE that the filter lum_fct_filter_band (defined in the other .py script)
 # is added to this list, to work well with the luminosity function
 if region == "BASS":
+    print("Using BASS/MzLS filters")
     desired_filters = {
         "g": "BASSMzLS_g",
         "r": "BASSMzLS_r",
         "z": "BASSMzLS_z",
     }
 else:
+    print("Using DECam filters")
     desired_filters = {
         "g": "DECam_g",
         "r": "DECam_r",
@@ -264,6 +266,13 @@ abs_mag = np.load(infile_ucat_sampling_dir + infile_ucat_absmag)
 z_ucat = np.load(infile_ucat_sampling_dir + infile_ucat_z)
 blue_red = np.load(infile_ucat_sampling_dir + infile_ucat_redblue)
 
+# Sort by absolute magnitude before performing SHAM
+abs_mag_inds_sorted = np.argsort(abs_mag)
+abs_mag = abs_mag[abs_mag_inds_sorted]
+z_ucat = z_ucat[abs_mag_inds_sorted]
+blue_red = blue_red[abs_mag_inds_sorted]
+
+# Split between red and blue galaxies
 abs_mag_red = abs_mag[blue_red == RED]
 z_red = z_ucat[blue_red == RED]
 abs_mag_blue = abs_mag[blue_red == BLUE]
@@ -575,5 +584,7 @@ print('total number of galaxies without magnitude cuts = ' + str(n_uncut))
 print('number of blue galaxies without magnitude cuts = ' + str(n_blue_uncut))
 print('number of red galaxies without magnitude cuts = ' + str(n_uncut - n_blue_uncut))
 print('total number of galaxies after magnitude cuts = ' + str(len(z)))
-print('number of blue galaxies after magnitude cuts = ' + str(np.sum(host_sub_index)))
-print('number of red galaxies after magnitude cuts = ' + str(len(z) - np.sum(host_sub_index)))
+print('number of blue galaxies after magnitude cuts = ' + str(np.sum(blue_red)))
+print('number of red galaxies after magnitude cuts = ' + str(len(z) - np.sum(blue_red)))
+print('number of galaxies in halos after magnitude cuts = ' + str(np.sum(host_sub_index)))
+print('number of galaxies in subhalos after magnitude cuts = ' + str(len(z) - np.sum(host_sub_index)))
