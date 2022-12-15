@@ -5,6 +5,7 @@
 
 from matplotlib import pyplot as plt
 import numpy as np
+import re
 from scipy.interpolate import griddata
 from tqdm import tqdm
 
@@ -17,14 +18,27 @@ plt.rcParams["font.size"] = "12"
 run_id = 100
 pinocchio_particle_count = 2048
 
-infile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{pinocchio_particle_count}cubed/{run_id}/interpolation_outputs/"
+# File with output of SHAM run.
+# Used to determine effective mass limit used in SHAM
+sham_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/sham_int_job_{pinocchio_particle_count}_{run_id}_output"
 
+# Directory containing output data from SHAM
+infile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{pinocchio_particle_count}cubed/{run_id}/interpolation_outputs/"
 infile_hist_blue = "blue_lim_interp.npz"
 infile_hist_red = "red_lim_interp.npz"
 
+# Obtain details of this SHAM run,
+# in particular the desired mass limit
 run_details = get_details_of_run(run_id)
-# SHAM parameters
 M_limit = run_details["mass_cut"] # mass limit for assigning blue or red galaxies to halos, [Msun/h]
+
+# Obtain effective mass limit used
+with open(sham_output_filename, 'r') as f:
+    text = f.read()
+
+M_limit_effective = float(
+    re.search("M_limit_effective\s+=\s+(.+)\n", text).groups()[0]
+)
 
 # ----------------------------------------------------–
 # LOAD HALO-SUBHALO HISTOGRAMS
@@ -76,7 +90,7 @@ red_z_edges_stacked = np.reshape(
 
 # Choose input values for mass and redshift
 input_masses = np.linspace(11, 15, num=100)
-input_redshifts = np.linspace(0, 0.5, 10)
+input_redshifts = np.linspace(0, 0.5, 5)
 
 fig_blue, ax_blue = plt.subplots(1, 1, figsize=(8, 6))
 fig_red, ax_red = plt.subplots(1, 1, figsize=(8, 6))
@@ -107,8 +121,8 @@ for z in tqdm(input_redshifts):
         linewidth=2,
     )
 
-ax_blue.set_title(f"Blue, mass cut = {M_limit:.1e}")
-ax_red.set_title(f"Red, mass cut = {M_limit:.1e}")
+ax_blue.set_title(f"Blue, mass cut = {M_limit_effective:.1e}")
+ax_red.set_title(f"Red, mass cut = {M_limit_effective:.1e}")
 
 for ax in {ax_blue, ax_red}:
     ax.set_xlabel(r"Halo/Subhalo Mass ($M_{\odot}/h$)")
@@ -124,7 +138,7 @@ for ax in {ax_blue, ax_red}:
 
     ax.grid()
 
-fig_blue.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/blue_interpolation.pdf")
-fig_red.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/red_interpolation.pdf")
+fig_blue.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/blue_interpolation_{pinocchio_particle_count}_{run_id}.pdf")
+fig_red.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/red_interpolation_{pinocchio_particle_count}_{run_id}.pdf")
 
 plt.show()

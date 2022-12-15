@@ -130,13 +130,19 @@ print("Computing 2PCF for regions", REGIONS)
 
 
 # Compute 2PCF, for blue and red galaxies separately
-for color_name, color_value in (("blue", BLUE), ("red", RED)):
-    print(f"Computing 2PCF for color {color_name}")
-    color_bitmask = np.where(galaxies["blue_red"] == color_value)[0]
-    color_galaxies = {
-        k: v[color_bitmask]
-        for k, v in galaxies.items()
-    }
+for color_name, color_value in (("blue", BLUE), ("red", RED), ("total", None)):
+    print(f"Computing 2PCF for {color_name} galaxies")
+
+    if color_value is None:
+        # For total, use all galaxies when computing 2PCF
+        color_galaxies = galaxies
+    else:
+        color_bitmask = np.where(galaxies["blue_red"] == color_value)[0]
+        color_galaxies = {
+            k: v[color_bitmask]
+            for k, v in galaxies.items()
+        }
+
 
     for rmag_low, rmag_high in rmag_bins:
         print(rmag_low, rmag_high)
