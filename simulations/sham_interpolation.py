@@ -283,13 +283,13 @@ z_blue = z_ucat[blue_red == BLUE]
 # -----------------------------------------------------
 print("Loading hist halos")
 with np.load(infile_hist2D_dir + infile_hist_halos) as data:
-	hist_z_mass_halos=data['hist_z_mass_halos']
-	bin_edges_z=data['bin_edges_z']
-	bin_edges_mass=data['bin_edges_mass']
+    hist_z_mass_halos=data['hist_z_mass_halos']
+    bin_edges_z=data['bin_edges_z']
+    bin_edges_mass=data['bin_edges_mass']
 
 print("Loading hist subhalos")
 with np.load(infile_hist2D_dir + infile_hist_subhalos) as data:
-	hist_z_mass_subs=data['hist_z_mass_subs']
+    hist_z_mass_subs=data['hist_z_mass_subs']
 
 num_z_bins = len(bin_edges_z) - 1
 num_mass_bins = len(bin_edges_mass) - 1
@@ -299,16 +299,17 @@ num_mass_bins = len(bin_edges_mass) - 1
 # -----------------------------------------------------
 # find index to match M_limit to a value in bin_edges_mass
 print("Finding index")
-idx_lim = (np.abs(bin_edges_mass - M_limit)).argmin()
+# Find first index in bin_edges_mass with mass greater or equal than M_limit
+idx_lim = [i for i, j in enumerate(bin_edges_mass) if j >= M_limit][0]
 M_limit_effective = bin_edges_mass[idx_lim]
 
 mask_hist_red = np.concatenate((
-    np.zeros(idx_lim+1),
-    np.ones(num_mass_bins-idx_lim-1)
+    np.zeros(idx_lim),
+    np.ones(num_mass_bins - idx_lim)
 ))
 mask_hist_blue = np.concatenate((
-    np.ones(idx_lim+1),
-    np.zeros(num_mass_bins-idx_lim-1)
+    np.ones(idx_lim),
+    np.zeros(num_mass_bins - idx_lim)
 ))
 
 hist_z_mass_blue = hist_z_mass_halos * mask_hist_blue
@@ -400,7 +401,7 @@ def process_halo_subhalo_file(i):
     # ----------------------------------------------------–
     # DIVIDE HALOS AND SUBHALOS INTO RED AND BLUE
     # -----------------------------------------------------
-    mask_red = (host_sub == 0) | (mass > M_limit_effective)
+    mask_red = (host_sub == 0) | (mass >= M_limit_effective)
     mask_blue = ~ mask_red
     n_blue = len(z_pin[mask_blue])
 
