@@ -1,6 +1,8 @@
 from matplotlib import pyplot as plt
 import numpy as np
 
+from manage_parameter_space import get_details_of_run
+
 BASS_MzLS = "BASS-MzLS"
 DECaLS_NGC = "DECaLS-NGC"
 DECaLS_SGC = "DECaLS-SGC"
@@ -20,8 +22,13 @@ COLORS = {
 # This determines the path where the data is stored
 PARTICLE_COUNT_PINOCCHIO = 2048
 
-# TODO determine run_id via some better way, or loop through all existing run_id values
-run_id = 100
+# Select run_id for 2PCF visualization
+run_id = 109
+run_details = get_details_of_run(run_id)
+# Optionally, set a second run_id for a comparison between the two runs
+# If not wanted, set the baseline_run_id to None
+baseline_run_id = 100
+baseline_run_details = get_details_of_run(baseline_run_id)
 
 PATH_SHAM_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{run_id}/2PCF/"
 PATH_DESI_LS_2PCF = "/cluster/scratch/lmachado/DataProducts/2PCF/"
@@ -145,5 +152,84 @@ plt.ylim([1e-4, 100])
 plt.grid()
 
 plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_SHAMRedvsBlue_{PARTICLE_COUNT_PINOCCHIO}_{run_id}.pdf")
+
+plt.show()
+
+# --------------------
+# Third plot: Compare 2PCF between two run IDs
+if baseline_run_id is None:
+    print("Baseline run ID has not been set. Exiting program.")
+    exit()
+
+PATH_BASELINE_SHAM_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{baseline_run_id}/2PCF/"
+
+fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": [2, 1]})
+
+for rmag_low, rmag_high in rmag_bins:
+    sham_bins_filename = f"simulated_total_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
+    sham_wtheta_filename = f"simulated_total_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
+
+    with open(f"{PATH_SHAM_2PCF}/{sham_bins_filename}", "rb") as f:
+        bins = np.load(f)
+    with open(f"{PATH_SHAM_2PCF}/{sham_wtheta_filename}", "rb") as f:
+        wtheta = np.load(f)
+
+    with open(f"{PATH_BASELINE_SHAM_2PCF}/{sham_bins_filename}", "rb") as f:
+        baseline_bins = np.load(f)
+    with open(f"{PATH_BASELINE_SHAM_2PCF}/{sham_wtheta_filename}", "rb") as f:
+        baseline_wtheta = np.load(f)
+
+    ax_top.plot(
+        bins,
+        wtheta,
+        linewidth=LINEWIDTH,
+        linestyle="solid",
+        color=COLORS[int(rmag_low)],
+        label=f"{rmag_low:.1f} < r < {rmag_high:.1f}",
+    )
+
+    ax_top.plot(
+        baseline_bins,
+        baseline_wtheta,
+        linewidth=LINEWIDTH,
+        linestyle="dashed",
+        color=COLORS[int(rmag_low)],
+    )
+
+    ax_bottom.plot(
+        bins,
+        wtheta / baseline_wtheta,
+        linewidth=LINEWIDTH,
+        linestyle="solid",
+        color=COLORS[int(rmag_low)],
+    )
+    ax_bottom.plot(
+        bins,
+        [1] * len(bins),
+        linewidth=LINEWIDTH,
+        color="black",
+    )
+
+ax_top.legend()
+
+ax_top.set_xscale("log")
+ax_top.set_yscale("log")
+ax_bottom.set_xscale("log")
+
+ax_top.set_ylabel(r"$w(\theta)$")
+ax_bottom.set_xlabel(r"$\theta$ [deg]")
+ax_bottom.set_ylabel("Ratio")
+
+ax_top.set_xlim([2e-3, 20])
+ax_top.set_ylim([1e-4, 100])
+
+ax_top.grid()
+ax_bottom.grid()
+
+plt.subplots_adjust(hspace=0.1)
+
+fig.suptitle(f"Solid: m_bins = {run_details['num_mass_bins']}, z_bins = {run_details['num_z_bins']}\nDashed: m_bins = {baseline_run_details['num_mass_bins']}, z_bins = {baseline_run_details['num_z_bins']}")
+
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_compareRUNS_{PARTICLE_COUNT_PINOCCHIO}_{run_id}_{baseline_run_id}.pdf")
 
 plt.show()

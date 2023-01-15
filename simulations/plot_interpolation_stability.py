@@ -91,7 +91,7 @@ for run_id in tqdm(DESIRED_RUN_IDS):
 
     # Choose input values for mass and redshift
     input_masses = np.linspace(11, 15, num=100)
-    input_redshifts = np.linspace(0, 0.5, 5)
+    input_redshifts = np.linspace(0.05, 0.5, 5)
 
     fig_blue, ax_blue = plt.subplots(1, 1, figsize=(8, 6))
     fig_red, ax_red = plt.subplots(1, 1, figsize=(8, 6))

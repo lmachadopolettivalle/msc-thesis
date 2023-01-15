@@ -13,6 +13,12 @@ from manage_parameter_space import get_details_of_run
 
 plt.rcParams["font.size"] = "12"
 
+COLOR_SCHEMES = {
+    "total": "Greys",
+    "blue": "Blues",
+    "red": "Reds",
+}
+
 pinocchio_particle_count = 2048
 
 DESIRED_RUN_IDS = [100] + list(range(106, 139 + 1))
@@ -75,14 +81,14 @@ for k in ["total", "blue", "red"]:
 
     fig, ax = plt.subplots(1, 1, figsize=(12, 9))
 
-    im = ax.imshow(grid, cmap=mpl.cm.RdBu_r)
+    im = ax.imshow(grid, cmap=plt.get_cmap(COLOR_SCHEMES[k]))
 
     # Show all ticks and label them with the respective list entries
     ax.set_xticks(np.arange(len(z_bins)), labels=z_bins)
     ax.set_yticks(np.arange(len(mass_bins)), labels=mass_bins)
 
-    ax.set_xlabel("Mass bins")
-    ax.set_ylabel("Redshift bins")
+    ax.set_xlabel("Redshift bins")
+    ax.set_ylabel("Mass bins")
 
     # Rotate the tick labels and set their alignment.
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
