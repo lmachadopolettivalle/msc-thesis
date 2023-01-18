@@ -269,7 +269,7 @@ def loop_dict(l):
 # -----------------------------------------------------
 
 # Get linear growth rate for each redshift
-data = pd.read_csv(dirname+cosmology_file, sep='\s+', lineterminator='\n', header=None, index_col=None, skipinitialspace=True).values
+data = pd.read_csv(dirname+cosmology_file, sep='\s+', lineterminator='\n', header=None, index_col=None, comment='#').values
 scale_factor_sorted = data[:, 0]
 growth_rate_sorted = data[:, 2]
 # preparation for interpolation later
@@ -409,7 +409,7 @@ for i in range(num_files):
     # ------------------------------
     # LOAD ONE LIGHTCONE FILE
     # ------------------------------
-    data = pd.read_csv(input_halo_filename, sep='\s+', lineterminator='\n', header=None, index_col=None, skipinitialspace=True).values
+    data = pd.read_csv(input_halo_filename, sep='\s+', lineterminator='\n', header=None, index_col=None, comment="#").values
     haloid = data[:, 0]
     redshift = data[:, 1]
     X = data[:, 2]
