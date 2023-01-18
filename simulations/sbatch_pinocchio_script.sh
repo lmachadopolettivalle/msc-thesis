@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --constraint=ib
 #SBATCH --mem-per-cpu=6000
 #SBATCH -n 1032
 #SBATCH -N 9-32
