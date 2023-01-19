@@ -5,8 +5,8 @@ FILENAME = "/cluster/home/lmachado/msc-thesis/simulations/explored_parameter_spa
 
 EXPLORED = pd.read_csv(FILENAME, sep=',', lineterminator='\n', index_col=None)
 
-DEFAULT_NUM_Z_BINS = 150
-DEFAULT_NUM_MASS_BINS = 30
+DEFAULT_NUM_Z_BINS = 50
+DEFAULT_NUM_MASS_BINS = 60
 DEFAULT_MASS_CUT = 8.0e12
 DEFAULT_P_POPULATED_SUBHALOS = 1.0
 DEFAULT_P_RED_SUBHALOS = 1.0
