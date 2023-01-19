@@ -23,12 +23,11 @@ COLORS = {
 PARTICLE_COUNT_PINOCCHIO = 2048
 
 # Select run_id for 2PCF visualization
-run_id = 109
+run_id = 140
 run_details = get_details_of_run(run_id)
 # Optionally, set a second run_id for a comparison between the two runs
 # If not wanted, set the baseline_run_id to None
-baseline_run_id = 100
-baseline_run_details = get_details_of_run(baseline_run_id)
+baseline_run_id = None
 
 PATH_SHAM_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{run_id}/2PCF/"
 PATH_DESI_LS_2PCF = "/cluster/scratch/lmachado/DataProducts/2PCF/"
@@ -160,6 +159,8 @@ plt.show()
 if baseline_run_id is None:
     print("Baseline run ID has not been set. Exiting program.")
     exit()
+
+baseline_run_details = get_details_of_run(baseline_run_id)
 
 PATH_BASELINE_SHAM_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{baseline_run_id}/2PCF/"
 
