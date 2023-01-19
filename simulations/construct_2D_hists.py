@@ -46,6 +46,12 @@ particle_count_pinocchio = args.particle_count_pinocchio
 run_details = get_details_of_run(run_id)
 num_z_bins = run_details["num_z_bins"]
 num_mass_bins = run_details["num_mass_bins"]
+M_limit = run_details["mass_cut"]
+
+# TODO uncomment me after adding quenching time as a parameter in the .csv
+#quenching_time = run_details["quenching_time"]
+quenching_time = 2 # TODO remove me
+
 
 # ------------------------------
 # Configurations, filenames and directories
@@ -72,10 +78,10 @@ else:
     os.mkdir(run_directory)
     print("Created output directory successfully.")
 
-hist_2D_dir = f"{run_directory}/halo_subhalo_plc/"
+hist_2D_dir = f"{run_directory}/2D_histograms/"
 
-hist_2D_halo_file = "pinocchio_masked_halos_hist2D"
-hist_2D_subhalo_file = "pinocchio_masked_subhalos_hist2D"
+hist_2D_red_file = "pinocchio_masked_red_hist2D"
+hist_2D_blue_file = "pinocchio_masked_blue_hist2D"
 
 if os.path.isdir(hist_2D_dir):
     print(f"{hist_2D_dir} directory already exists.")
@@ -83,7 +89,6 @@ else:
     print(f"Creating new output directory, {hist_2D_dir} ...")
     os.mkdir(hist_2D_dir)
     print("Created output directory successfully.")
-
 
 # ---------------------------------
 # NO NEED TO MODIFY BELOW THIS LINE
@@ -122,8 +127,8 @@ max_mass = 6.0e15 # Msun/h, hopefully high enough
 bin_edges_mass = np.logspace(np.log10(min_mass), np.log10(max_mass), num=(num_mass_bins+1))
 bin_edges_z = np.linspace(z_min, z_max, (num_z_bins+1))
 
-hist_z_mass_halos, bin_edges_z, bin_edges_mass = np.histogram2d([], [], bins=(bin_edges_z, bin_edges_mass))
-hist_z_mass_subs, bin_edges_z, bin_edges_mass = np.histogram2d([], [], bins=(bin_edges_z, bin_edges_mass))
+hist_z_mass_red, bin_edges_z, bin_edges_mass = np.histogram2d([], [], bins=(bin_edges_z, bin_edges_mass))
+hist_z_mass_blue, bin_edges_z, bin_edges_mass = np.histogram2d([], [], bins=(bin_edges_z, bin_edges_mass))
 
 # For each subhalo file, generate the corresponding histograms
 print("Starting to process halo/subhalo files to create 2D histograms...")
@@ -135,37 +140,38 @@ def process_halo_subhalo_file(filename):
     masses = data[:, 1]
     redshifts = data[:, 2]
     is_halo = data[:, 8]
+    time_since_merger = data[:, 9]
 
-    halo_mask = (is_halo == 1)
-    subhalo_mask = (is_halo == 0)
+    red_mask = ((is_halo == 1) & (masses > M_limit)) | ((is_halo == 0) & (time_since_merger > quenching_time))
+    blue_mask = ((is_halo == 1) & (masses <= M_limit)) | ((is_halo == 0) & (time_since_merger <= quenching_time))
 
-    halo_masses = masses[halo_mask]
-    halo_redshifts = redshifts[halo_mask]
+    red_masses = masses[red_mask]
+    red_redshifts = redshifts[red_mask]
 
-    subhalo_masses = masses[subhalo_mask]
-    subhalo_redshifts = redshifts[subhalo_mask]
+    blue_masses = masses[blue_mask]
+    blue_redshifts = redshifts[blue_mask]
 
     # ------------------------------
     # CALCULATE 2D HISTOGRAMS
     # ------------------------------
-    hist_z_mass_halos_temp, bin_edges_z_temp, bin_edges_mass_temp = np.histogram2d(halo_redshifts, halo_masses, bins=(bin_edges_z, bin_edges_mass))
-    hist_z_mass_subs_temp, bin_edges_z_temp, bin_edges_mass_temp = np.histogram2d(subhalo_redshifts, subhalo_masses, bins=(bin_edges_z, bin_edges_mass))
+    hist_z_mass_red_temp, bin_edges_z_temp, bin_edges_mass_temp = np.histogram2d(red_redshifts, red_masses, bins=(bin_edges_z, bin_edges_mass))
+    hist_z_mass_blue_temp, bin_edges_z_temp, bin_edges_mass_temp = np.histogram2d(blue_redshifts, blue_masses, bins=(bin_edges_z, bin_edges_mass))
 
-    return (hist_z_mass_halos_temp, hist_z_mass_subs_temp, bin_edges_z_temp, bin_edges_mass_temp)
+    return (hist_z_mass_red_temp, hist_z_mass_blue_temp, bin_edges_z_temp, bin_edges_mass_temp)
 
 
 with concurrent.futures.ProcessPoolExecutor() as executor:
     for result in executor.map(process_halo_subhalo_file, FILENAMES):
-        hist_z_mass_halos_temp, hist_z_mass_subs_temp, bin_edges_z, bin_edges_mass = result
+        hist_z_mass_red_temp, hist_z_mass_blue_temp, bin_edges_z, bin_edges_mass = result
 
-        hist_z_mass_halos += hist_z_mass_halos_temp
-        hist_z_mass_subs += hist_z_mass_subs_temp
+        hist_z_mass_red += hist_z_mass_red_temp
+        hist_z_mass_blue += hist_z_mass_blue_temp
 
 # ------------------------------
 # SAVE 2D HISTOGRAMS TO FILES
 # ------------------------------
-output_2Dhist_halo = hist_2D_dir + hist_2D_halo_file # Note that savez adds a '.npz' extension
-output_2Dhist_subhalo = hist_2D_dir + hist_2D_subhalo_file # Note that savez adds a '.npz' extension
+output_2Dhist_red = hist_2D_dir + hist_2D_red_file # Note that savez adds a '.npz' extension
+output_2Dhist_blue = hist_2D_dir + hist_2D_blue_file # Note that savez adds a '.npz' extension
 
-np.savez(output_2Dhist_halo, hist_z_mass_halos=hist_z_mass_halos, bin_edges_z=bin_edges_z, bin_edges_mass=bin_edges_mass)
-np.savez(output_2Dhist_subhalo, hist_z_mass_subs=hist_z_mass_subs, bin_edges_z=bin_edges_z, bin_edges_mass=bin_edges_mass)
+np.savez(output_2Dhist_red, hist_z_mass_red=hist_z_mass_red, bin_edges_z=bin_edges_z, bin_edges_mass=bin_edges_mass)
+np.savez(output_2Dhist_blue, hist_z_mass_blue=hist_z_mass_blue, bin_edges_z=bin_edges_z, bin_edges_mass=bin_edges_mass)
