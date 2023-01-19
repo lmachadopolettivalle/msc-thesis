@@ -55,10 +55,7 @@ run_details = get_details_of_run(run_id)
 # SHAM parameters
 M_limit = run_details["mass_cut"] # mass limit for assigning blue or red galaxies to halos, [Msun/h]
 M_limit_effective = M_limit
-
-# TODO uncomment me after adding quenching time as a parameter in the .csv
-#quenching_time = run_details["quenching_time"]
-quenching_time = 2 # TODO remove me
+quenching_time = run_details["quenching_time"]
 
 # Desired filters
 # NOTE that the filter lum_fct_filter_band (defined in the other .py script)

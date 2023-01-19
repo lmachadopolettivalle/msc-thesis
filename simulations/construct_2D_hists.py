@@ -47,11 +47,7 @@ run_details = get_details_of_run(run_id)
 num_z_bins = run_details["num_z_bins"]
 num_mass_bins = run_details["num_mass_bins"]
 M_limit = run_details["mass_cut"]
-
-# TODO uncomment me after adding quenching time as a parameter in the .csv
-#quenching_time = run_details["quenching_time"]
-quenching_time = 2 # TODO remove me
-
+quenching_time = run_details["quenching_time"]
 
 # ------------------------------
 # Configurations, filenames and directories

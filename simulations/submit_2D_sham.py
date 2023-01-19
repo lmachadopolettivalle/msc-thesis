@@ -15,8 +15,7 @@ parser.add_argument("--region", type=str, required=True)
 parser.add_argument("--num_z_bins", type=int, required=True)
 parser.add_argument("--num_mass_bins", type=int, required=True)
 parser.add_argument("--mass_cut", type=float, required=True)
-parser.add_argument("--p_populated_subhalos", type=float, required=True)
-parser.add_argument("--p_red_subhalos", type=float, required=True)
+parser.add_argument("--quenching_time", type=float, required=True)
 parser.add_argument("--particle_count_pinocchio", type=int, required=True)
 
 args = parser.parse_args()
@@ -25,14 +24,13 @@ region = args.region
 num_z_bins = args.num_z_bins
 num_mass_bins = args.num_mass_bins
 mass_cut = args.mass_cut
-p_populated_subhalos = args.p_populated_subhalos
-p_red_subhalos = args.p_red_subhalos
+quenching_time = args.quenching_time
 particle_count_pinocchio = args.particle_count_pinocchio
 
 # Save this run to the database, and then obtain its stored ID
-store_new_run(num_z_bins=num_z_bins, num_mass_bins=num_mass_bins, mass_cut=mass_cut, p_populated_subhalos=p_populated_subhalos, p_red_subhalos=p_red_subhalos)
+store_new_run(num_z_bins=num_z_bins, num_mass_bins=num_mass_bins, mass_cut=mass_cut, quenching_time=quenching_time)
 
-run_id = get_id_of_run(num_z_bins=num_z_bins, num_mass_bins=num_mass_bins, mass_cut=mass_cut, p_populated_subhalos=p_populated_subhalos, p_red_subhalos=p_red_subhalos)
+run_id = get_id_of_run(num_z_bins=num_z_bins, num_mass_bins=num_mass_bins, mass_cut=mass_cut, quenching_time=quenching_time)
 
 # Submit sbatch jobs using this run ID
 submit_message_2D = subprocess.run(

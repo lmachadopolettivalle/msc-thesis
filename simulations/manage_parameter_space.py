@@ -1,27 +1,25 @@
 import numpy as np
 import pandas as pd
 
-FILENAME = "/cluster/home/lmachado/msc-thesis/simulations/explored_parameter_space.txt"
+FILENAME = "/cluster/home/lmachado/msc-thesis/simulations/explored_parameter_space.csv"
 
 EXPLORED = pd.read_csv(FILENAME, sep=',', lineterminator='\n', index_col=None)
 
 DEFAULT_NUM_Z_BINS = 50
 DEFAULT_NUM_MASS_BINS = 60
 DEFAULT_MASS_CUT = 8.0e12
-DEFAULT_P_POPULATED_SUBHALOS = 1.0
-DEFAULT_P_RED_SUBHALOS = 1.0
+DEFAULT_QUENCHING_TIME = 2.0
 
 def get_new_ID():
     # Find an ID that does not yet exist in the DataFrame
     return 1 + max(EXPLORED["ID"])
 
-def get_id_of_run(num_z_bins=DEFAULT_NUM_Z_BINS, num_mass_bins=DEFAULT_NUM_MASS_BINS, mass_cut=DEFAULT_MASS_CUT, p_populated_subhalos=DEFAULT_P_POPULATED_SUBHALOS, p_red_subhalos=DEFAULT_P_RED_SUBHALOS):
+def get_id_of_run(num_z_bins=DEFAULT_NUM_Z_BINS, num_mass_bins=DEFAULT_NUM_MASS_BINS, mass_cut=DEFAULT_MASS_CUT, quenching_time=DEFAULT_QUENCHING_TIME):
     run_ids = EXPLORED.loc[
         (EXPLORED["num_z_bins"] == num_z_bins) &
         (EXPLORED["num_mass_bins"] == num_mass_bins) &
         (np.isclose(EXPLORED["mass_cut"], mass_cut)) &
-        (np.isclose(EXPLORED["p_populated_subhalos"], p_populated_subhalos)) &
-        (np.isclose(EXPLORED["p_red_subhalos"], p_red_subhalos))
+        (np.isclose(EXPLORED["quenching_time"], quenching_time))
     ]["ID"].values
 
     if len(run_ids) == 0:
@@ -29,7 +27,7 @@ def get_id_of_run(num_z_bins=DEFAULT_NUM_Z_BINS, num_mass_bins=DEFAULT_NUM_MASS_
 
     return run_ids[0]
 
-def store_new_run(num_z_bins=DEFAULT_NUM_Z_BINS, num_mass_bins=DEFAULT_NUM_MASS_BINS, mass_cut=DEFAULT_MASS_CUT, p_populated_subhalos=DEFAULT_P_POPULATED_SUBHALOS, p_red_subhalos=DEFAULT_P_RED_SUBHALOS):
+def store_new_run(num_z_bins=DEFAULT_NUM_Z_BINS, num_mass_bins=DEFAULT_NUM_MASS_BINS, mass_cut=DEFAULT_MASS_CUT, quenching_time=DEFAULT_QUENCHING_TIME):
     global EXPLORED
 
     # Make sure this run does not already exist
@@ -37,8 +35,7 @@ def store_new_run(num_z_bins=DEFAULT_NUM_Z_BINS, num_mass_bins=DEFAULT_NUM_MASS_
         num_z_bins=num_z_bins,
         num_mass_bins=num_mass_bins,
         mass_cut=mass_cut,
-        p_populated_subhalos=p_populated_subhalos,
-        p_red_subhalos=p_red_subhalos,
+        quenching_time=quenching_time,
     )
     if ID is not None:
         print(f"Run already exists with ID {ID}. Will not store a new entry.")
@@ -52,8 +49,7 @@ def store_new_run(num_z_bins=DEFAULT_NUM_Z_BINS, num_mass_bins=DEFAULT_NUM_MASS_
             "num_z_bins": [num_z_bins],
             "num_mass_bins": [num_mass_bins],
             "mass_cut": [mass_cut],
-            "p_populated_subhalos": [p_populated_subhalos],
-            "p_red_subhalos": [p_red_subhalos],
+            "quenching_time": [quenching_time],
         }
     )
 
