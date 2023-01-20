@@ -29,7 +29,7 @@ REGIONS = (BASS_MzLS, )
 PARTICLE_COUNT_PINOCCHIO = 2048
 
 # TODO determine run_id via some better way, or loop through all existing run_id values
-run_id = 100
+run_id = 143
 
 # Path where to save 2PCF computed values
 PATH_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{run_id}/2PCF/"
@@ -130,7 +130,7 @@ print("Computing 2PCF for regions", REGIONS)
 
 
 # Compute 2PCF, for blue and red galaxies separately
-for color_name, color_value in (("blue", BLUE), ("red", RED), ("total", None)):
+for color_name, color_value in (("total", None), ("blue", BLUE), ("red", RED)):
     print(f"Computing 2PCF for {color_name} galaxies")
 
     if color_value is None:

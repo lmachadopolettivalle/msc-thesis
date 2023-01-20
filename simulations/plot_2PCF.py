@@ -23,7 +23,7 @@ COLORS = {
 PARTICLE_COUNT_PINOCCHIO = 2048
 
 # Select run_id for 2PCF visualization
-run_id = 140
+run_id = 100
 run_details = get_details_of_run(run_id)
 # Optionally, set a second run_id for a comparison between the two runs
 # If not wanted, set the baseline_run_id to None
@@ -49,6 +49,8 @@ rmag_bins = [
 
 # First plot: compare SHAM 2PCF (all galaxies) vs. DESI LS 2PCF (all galaxies)
 # This plot does NOT include any blue vs. red separation
+fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": [2, 1]})
+
 for rmag_low, rmag_high in rmag_bins:
     sham_bins_filename = f"simulated_total_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
     sham_wtheta_filename = f"simulated_total_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
@@ -66,7 +68,7 @@ for rmag_low, rmag_high in rmag_bins:
     with open(f"{PATH_DESI_LS_2PCF}/{desi_wtheta_filename}", "rb") as f:
         desi_wtheta = np.load(f)
 
-    plt.plot(
+    ax_top.plot(
         desi_bins,
         desi_wtheta,
         linewidth=LINEWIDTH,
@@ -75,7 +77,7 @@ for rmag_low, rmag_high in rmag_bins:
         label=f"{rmag_low:.1f} < r < {rmag_high:.1f}",
     )
 
-    plt.plot(
+    ax_top.plot(
         sham_bins,
         sham_wtheta,
         linewidth=LINEWIDTH,
@@ -83,20 +85,44 @@ for rmag_low, rmag_high in rmag_bins:
         color=COLORS[int(rmag_low)],
     )
 
-plt.legend()
-plt.xscale("log")
-plt.yscale("log")
-plt.xlabel(r"$\theta$ [deg]")
-plt.ylabel(r"$w(\theta)$")
-plt.title(f"DESI LS (-) vs. SHAM (--)\n{DESI_REGION}")
-plt.xlim([2e-3, 20])
-plt.ylim([1e-4, 100])
-plt.grid()
+    ax_bottom.plot(
+        desi_bins,
+        sham_wtheta / desi_wtheta,
+        linewidth=LINEWIDTH,
+        linestyle="solid",
+        color=COLORS[int(rmag_low)],
+    )
+    ax_bottom.plot(
+        desi_bins,
+        [1] * len(desi_bins),
+        linewidth=LINEWIDTH,
+        color="black",
+    )
 
-plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_compareSHAMvsDESI_{PARTICLE_COUNT_PINOCCHIO}_{run_id}.pdf")
+ax_top.legend()
+
+ax_top.set_xscale("log")
+ax_top.set_yscale("log")
+ax_bottom.set_xscale("log")
+
+ax_top.set_ylabel(r"$w(\theta)$")
+ax_bottom.set_xlabel(r"$\theta$ [deg]")
+ax_bottom.set_ylabel("Ratio")
+
+ax_top.set_xlim([2e-3, 20])
+ax_top.set_ylim([1e-4, 100])
+ax_bottom.set_ylim([0.5, 1.5])
+
+ax_top.grid()
+ax_bottom.grid()
+
+plt.subplots_adjust(hspace=0.1)
+
+fig.suptitle(f"DESI LS (-) vs. SHAM (--)\n{DESI_REGION}")
+
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_compareSHAMvsDESI_{PARTICLE_COUNT_PINOCCHIO}_{run_id}.pdf")
 
 plt.show()
-
 
 # --------------------
 # Second plot: compare SHAM 2PCF total vs. red vs. blue galaxies
