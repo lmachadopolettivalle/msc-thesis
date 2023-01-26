@@ -52,9 +52,9 @@ particle_count_pinocchio = 2048
 
 # Directory containing PINOCCHIO outputs.
 # This is where the subhalo catalog will also be saved at the end of this script.
-dirname = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed_z1.5/"
+dirname = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/"
 
-pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_deep_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
+pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
 
 RUN_FLAG = "luis" # Corresponds to "RunFlag" in PINOCCHIO parameter file. Name of the run being analyzed.
 
@@ -88,7 +88,6 @@ dec_max = 90
 # Path to file containing mask array as a HEALPix map
 # If no mask is desired, set the filename to None, and the full-sky data will be included in the analysis
 infile_footprint = "/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy"
-infile_footprint = None
 
 # Set a default NSIDE and NPIX and a full-sky mask, in case there is no valid input mask
 NSIDE = 1
@@ -382,7 +381,7 @@ n_all = 0
 # or when we have completed all files.
 count_files_processed = 0
 
-for i in range(2, num_files):
+for i in range(num_files):
     # ------------------------------
     # CHECK IF WE HAVE PROCESSED ENOUGH FILES,
     # AND STOP IF WE HAVE.

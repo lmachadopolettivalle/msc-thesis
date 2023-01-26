@@ -40,9 +40,9 @@ m_max = -12
 particle_count_pinocchio = 2048
 
 # File path names
-pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_deep_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
+pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
 
-outfile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed_z1.5/outputs_sampling/"
+outfile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/outputs_sampling/"
 
 outfile_name = "sampled_BASS"
 
@@ -55,14 +55,13 @@ outfile_redblue = f"{outfile_name}_redblue.npy"
 # in which case the value DEFAULT_PIXAREA will be used,
 # without any further declination cuts
 infile_footprint = "/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy"
-infile_footprint = None
 
 NEST = True
 
 MASK_CUTOFF = 0
 
 # Set a default pixarea, which will be used in case there is no valid input mask
-DEFAULT_PIXAREA = 0.007596 * 4 * np.pi # 10% of the sky
+DEFAULT_PIXAREA = 0.1 * 4 * np.pi # 10% of the sky
 
 # Additionally, support a range of declinations
 # In this case, the mask is further filtered to only keep its pixels within the
