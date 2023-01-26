@@ -53,11 +53,11 @@ quenching_time = run_details["quenching_time"]
 # Configurations, filenames and directories
 # ------------------------------
 
-pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
+pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_deep_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
 
 # Directory where subhalo files are stored
 # These were generated with the subhalo code
-dirname = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/"
+dirname = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed_z1.5/"
 halo_subhalo_files = "pinocchio_masked_halos_subhalos_plc"
 
 # Obtain all subhalo files from the given directory
@@ -66,7 +66,7 @@ FILENAMES = [
     if halo_subhalo_files in name
 ]
 
-run_directory = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/{run_id}/"
+run_directory = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed_z1.5/{run_id}/"
 if os.path.isdir(run_directory):
     print(f"{run_directory} directory already exists.")
 else:

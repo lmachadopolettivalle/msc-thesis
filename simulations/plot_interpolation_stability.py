@@ -16,15 +16,15 @@ plt.rcParams["font.size"] = "12"
 pinocchio_particle_count = 2048
 
 # Loop through desired run IDs
-DESIRED_RUN_IDS = [100] + list(range(106, 140))
+DESIRED_RUN_IDS = [144, 145]
 
 for run_id in tqdm(DESIRED_RUN_IDS):
     # File with output of SHAM run.
     # Used to determine effective mass limit used in SHAM
-    sham_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/sham_int_job_{pinocchio_particle_count}_{run_id}_output"
+    sham_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/sham_int_job_deep_{pinocchio_particle_count}_{run_id}_output"
 
     # Directory containing output data from SHAM
-    infile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{pinocchio_particle_count}cubed/{run_id}/interpolation_outputs/"
+    infile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{pinocchio_particle_count}cubed_z1.5/{run_id}/interpolation_outputs/"
     infile_hist_blue = "blue_lim_interp.npz"
     infile_hist_red = "red_lim_interp.npz"
 
@@ -139,10 +139,10 @@ for run_id in tqdm(DESIRED_RUN_IDS):
 
         ax.grid()
 
-    fig_blue.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/blue_interpolation_{pinocchio_particle_count}_{run_id}.pdf")
-    fig_red.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/red_interpolation_{pinocchio_particle_count}_{run_id}.pdf")
+    fig_blue.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/blue_interpolation_deep_{pinocchio_particle_count}_{run_id}.pdf")
+    fig_red.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/red_interpolation_deep_{pinocchio_particle_count}_{run_id}.pdf")
 
-    #plt.show()
+    plt.show()
 
     # Close figures to reduce memory usage,
     # since pyplot keeps figures in memory until
