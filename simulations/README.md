@@ -19,7 +19,7 @@ Prerequisites:
 - Completed PINOCCHIO run
 
 Reminders:
-- Modify `sbatch_pinocchio_script.sh` for appropriate run time, memory requested, and job name
+- Modify `sbatch_subhalos_script.sh` for appropriate run time, memory requested, and job name
 - Modify `compute_subhalos_from_pinocchio.py` for appropriate:
 	- Particle count
 	- Footprint mask input file
@@ -35,6 +35,14 @@ Execute `./submit_sample_only.sh` to submit the sample job. This will sample gal
 
 Prerequisites:
 - Completed PINOCCHIO run (purely because it needs the cosmology used, which is read in from the PINOCCHIO output file)
+
+Reminders:
+- Modify `sbatch_sample_only_script.sh` for appropriate run time, memory requested, and job name
+- Modify `sample_from_lumfct_masked.py` for appropriate:
+	- Total pixarea / Input mask file
+	- PINOCCHIO Particle Count
+	- PINOCCHIO Slurm output file
+	- Directory containing PINOCCHIO outputs, where we store the results of this sampling
 
 ## Steps 4 + 5: Construct 2D histogram for SHAM + Perform SHAM assignment
 
