@@ -9,7 +9,7 @@ plt.rcParams["font.size"] = "12"
 
 pinocchio_particle_count = 2048
 
-run_id = 109
+run_id = 143
 
 # Directory containing output data from SHAM
 infile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{pinocchio_particle_count}cubed/{run_id}/interpolation_outputs/"

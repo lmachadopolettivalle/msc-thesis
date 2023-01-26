@@ -16,7 +16,7 @@ plt.rcParams["font.size"] = "12"
 pinocchio_particle_count = 2048
 
 # Loop through desired run IDs
-DESIRED_RUN_IDS = [100] + list(range(106, 140))
+DESIRED_RUN_IDS = [144, 145]
 
 for run_id in tqdm(DESIRED_RUN_IDS):
     # File with output of SHAM run.
@@ -90,35 +90,35 @@ for run_id in tqdm(DESIRED_RUN_IDS):
     )
 
     # Choose input values for mass and redshift
-    input_masses = np.linspace(11, 15, num=100)
-    input_redshifts = np.linspace(0.05, 0.5, 5)
+    input_masses = np.log10([1e12, 1e13, 1e14])
+    input_redshifts = np.linspace(0.05, 0.5, num=30)
 
     fig_blue, ax_blue = plt.subplots(1, 1, figsize=(8, 6))
     fig_red, ax_red = plt.subplots(1, 1, figsize=(8, 6))
 
     # Interpolate for each redshift
-    for z in input_redshifts:
+    for mass in input_masses:
         blue_absmags = griddata(
             (blue_z_edges_stacked, np.log10(blue_mass_edges_stacked)),
             np.ndarray.flatten(lim_abs_mag_blue),
-            (z, input_masses),
+            (input_redshifts, mass),
         )
         red_absmags = griddata(
             (red_z_edges_stacked, np.log10(red_mass_edges_stacked)),
             np.ndarray.flatten(lim_abs_mag_red),
-            (z, input_masses),
+            (input_redshifts, mass),
         )
 
         ax_blue.plot(
-            10**input_masses,
+            input_redshifts,
             blue_absmags,
-            label=f"z = {z:.2f}",
+            label=f"mass = {10**mass:.1e}",
             linewidth=2,
         )
         ax_red.plot(
-            10**input_masses,
+            input_redshifts,
             red_absmags,
-            label=f"z = {z:.2f}",
+            label=f"mass = {10**mass:.1e}",
             linewidth=2,
         )
 
@@ -126,21 +126,21 @@ for run_id in tqdm(DESIRED_RUN_IDS):
     ax_red.set_title(f"Red, mass cut = {M_limit_effective:.1e}\nMass bins: {num_mass_bins}, z bins: {num_z_bins}")
 
     for ax in {ax_blue, ax_red}:
-        ax.set_xlabel(r"Halo/Subhalo Mass ($M_{\odot}/h$)")
+        ax.set_xlabel("Redshift")
         ax.set_ylabel("Galaxy's Absolute Magnitude")
 
         ax.invert_yaxis()
 
-        ax.set_xscale("log")
+        #ax.set_xscale("log")
 
-        ax.set_ylim([-17, -23])
+        ax.set_ylim([-18, -24])
 
         ax.legend(loc="lower right")
 
         ax.grid()
 
-    fig_blue.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/blue_interpolation_{pinocchio_particle_count}_{run_id}.pdf")
-    fig_red.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/red_interpolation_{pinocchio_particle_count}_{run_id}.pdf")
+    fig_blue.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/blue_interpolation_bymass_{pinocchio_particle_count}_{run_id}.pdf")
+    fig_red.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/red_interpolation_bymass_{pinocchio_particle_count}_{run_id}.pdf")
 
     #plt.show()
 
