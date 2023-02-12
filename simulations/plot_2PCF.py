@@ -109,7 +109,7 @@ ax_top.set_ylabel(r"$w(\theta)$")
 ax_bottom.set_xlabel(r"$\theta$ [deg]")
 ax_bottom.set_ylabel("Ratio")
 
-ax_top.set_xlim([2e-3, 20])
+ax_top.set_xlim([2e-3, 5])
 ax_top.set_ylim([1e-4, 100])
 ax_bottom.set_ylim([0.5, 1.5])
 
@@ -172,7 +172,7 @@ plt.yscale("log")
 plt.xlabel(r"$\theta$ [deg]")
 plt.ylabel(r"$w(\theta)$")
 plt.title(f"SHAM Comparison: all (-) vs. blue (--) vs. red (...)\n{DESI_REGION}")
-plt.xlim([2e-3, 20])
+plt.xlim([2e-3, 5])
 plt.ylim([1e-4, 100])
 plt.grid()
 
@@ -247,7 +247,7 @@ ax_top.set_ylabel(r"$w(\theta)$")
 ax_bottom.set_xlabel(r"$\theta$ [deg]")
 ax_bottom.set_ylabel("Ratio")
 
-ax_top.set_xlim([2e-3, 20])
+ax_top.set_xlim([2e-3, 5])
 ax_top.set_ylim([1e-4, 100])
 
 ax_top.grid()
