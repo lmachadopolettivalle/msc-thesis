@@ -36,7 +36,7 @@ run_id = get_id_of_run(num_z_bins=num_z_bins, num_mass_bins=num_mass_bins, mass_
 submit_message_2D = subprocess.run(
     [
         "sbatch",
-        f"--export=ALL,run_id={run_id},particle_count_pinocchio={particle_count_pinocchio}",
+        f"--export=ALL,run_id={run_id},particle_count_pinocchio={particle_count_pinocchio},region={region}",
         f"-J2D_hist_job_{particle_count_pinocchio}_{run_id}",
         f"-o/cluster/home/lmachado/msc-thesis/simulations/2D_hist_{particle_count_pinocchio}_{run_id}_output",
         f"-e/cluster/home/lmachado/msc-thesis/simulations/2D_hist_{particle_count_pinocchio}_{run_id}_error",

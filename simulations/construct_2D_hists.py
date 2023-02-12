@@ -24,6 +24,8 @@ import os
 import pandas as pd
 import re
 
+import directories
+
 from manage_parameter_space import get_details_of_run
 
 print("Done importing libraries.")
@@ -32,15 +34,21 @@ print("Done importing libraries.")
 # Interpolation parameters
 # Can be modified and fine-tuned
 # ------------------------------
+Z_DEPTH = 0.5
+PINOCCHIO_REGION = "fullsky"
+
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--run_id", type=int, required=True)
 parser.add_argument("--particle_count_pinocchio", type=int, required=True)
+parser.add_argument("--region", type=str, required=True)
 
 args = parser.parse_args()
 
 run_id = args.run_id
 particle_count_pinocchio = args.particle_count_pinocchio
+region = args.region
 
 # Get details of run
 run_details = get_details_of_run(run_id)
@@ -53,11 +61,16 @@ quenching_time = run_details["quenching_time"]
 # Configurations, filenames and directories
 # ------------------------------
 
-pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
+pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{PINOCCHIO_REGION}_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
 
 # Directory where subhalo files are stored
 # These were generated with the subhalo code
-dirname = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/"
+dirname = directories.pinocchio_subhalo_files_path(
+    particle_count=particle_count_pinocchio,
+    z_depth=Z_DEPTH,
+    pinocchio_region=PINOCCHIO_REGION,
+    DESI_region=region,
+)
 halo_subhalo_files = "pinocchio_masked_halos_subhalos_plc"
 
 # Obtain all subhalo files from the given directory
@@ -66,7 +79,13 @@ FILENAMES = [
     if halo_subhalo_files in name
 ]
 
-run_directory = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/{run_id}/"
+run_directory = directories.path_run(
+    particle_count=particle_count_pinocchio,
+    z_depth=Z_DEPTH,
+    pinocchio_region=PINOCCHIO_REGION,
+    DESI_region=region,
+    run_id=run_id,
+)
 if os.path.isdir(run_directory):
     print(f"{run_directory} directory already exists.")
 else:

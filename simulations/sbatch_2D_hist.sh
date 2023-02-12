@@ -5,4 +5,4 @@
 #SBATCH -t 00:20:00
 #SBATCH --mail-type=FAIL
 
-/cluster/home/lmachado/venv/bin/python -u construct_2D_hists.py --run_id ${run_id} --particle_count_pinocchio ${particle_count_pinocchio}
+/cluster/home/lmachado/venv/bin/python -u construct_2D_hists.py --run_id ${run_id} --particle_count_pinocchio ${particle_count_pinocchio} --region ${region}
