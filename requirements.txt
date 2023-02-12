@@ -20,6 +20,7 @@ halotools
 
 # PyCosmo, UFig, UCat
 pandas
+psutil
 six
 dask
 recfast4py

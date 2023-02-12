@@ -18,13 +18,17 @@
 print("Importing required libraries...")
 
 from collections import defaultdict
+import gc
 from halotools.empirical_models import NFWProfile # ATTENTION: needs hdf5 and python/3.6.0!!!
 import healpy as hp
 import numpy as np
 import os
 import pandas as pd
+import psutil # NOTE:to get memory in MB, use: print(psutil.Process().memory_info().rss / (1024 * 1024))
 import re
 from tqdm import tqdm
+
+import directories
 
 np.random.seed(42)
 
@@ -44,17 +48,39 @@ nfw_model = NFWProfile()
 # However, due to the large memory and time requirements,
 # we need to split this run into many batches,
 # which means we only process a few files at a time.
-NUMBER_OF_FILES_TO_BE_PROCESSED = 24
+# If None, process all files.
+NUMBER_OF_FILES_TO_BE_PROCESSED = None
 
 # Cube root of number of particles used.
 # This is present in the paths to different input files used in this script.
 particle_count_pinocchio = 2048
 
+Z_DEPTH = 0.5
+PINOCCHIO_REGION = "fullsky"
+DESI_region = directories.DECaLS_NGC
+
 # Directory containing PINOCCHIO outputs.
 # This is where the subhalo catalog will also be saved at the end of this script.
-dirname = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/"
+dirname = directories.pinocchio_halo_files_path(
+    particle_count=particle_count_pinocchio,
+    z_depth=Z_DEPTH,
+    pinocchio_region=PINOCCHIO_REGION,
+)
+output_dirname = directories.pinocchio_subhalo_files_path(
+    particle_count=particle_count_pinocchio,
+    z_depth=Z_DEPTH,
+    pinocchio_region=PINOCCHIO_REGION,
+    DESI_region=DESI_region,
+)
 
-pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
+if os.path.isdir(output_dirname):
+    print(f"{output_dirname} directory already exists.")
+else:
+    print(f"Creating new output directory, {output_dirname} ...")
+    os.mkdir(output_dirname)
+    print("Created output directory successfully.")
+
+pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{PINOCCHIO_REGION}_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
 
 RUN_FLAG = "luis" # Corresponds to "RunFlag" in PINOCCHIO parameter file. Name of the run being analyzed.
 
@@ -68,6 +94,11 @@ outfile_halos = 'pinocchio_masked_halos_subhalos_plc'
 # ------------------------------------------
 # MASKING CONFIGURATION
 # ------------------------------------------
+MASK_FILES = {
+    directories.BASS_MzLS: "/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy",
+    directories.DECaLS_NGC: "/cluster/scratch/lmachado/DataProducts/masks/DECaLS_NGC_mask.npy",
+    directories.DECaLS_SGC: "/cluster/scratch/lmachado/DataProducts/masks/DECaLS_SGC_mask.npy",
+}
 
 # Decide which HEALPix ordering to use
 # Set NEST = False for RING, NEST = True for NEST
@@ -87,7 +118,7 @@ dec_max = 90
 
 # Path to file containing mask array as a HEALPix map
 # If no mask is desired, set the filename to None, and the full-sky data will be included in the analysis
-infile_footprint = "/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy"
+infile_footprint = MASK_FILES[DESI_region]
 
 # Set a default NSIDE and NPIX and a full-sky mask, in case there is no valid input mask
 NSIDE = 1
@@ -278,6 +309,7 @@ redshift_sorted = 1./scale_factor_sorted - 1.
 # -----------------------------------------------------
 # IMPORT MERGER HISTORY
 # -----------------------------------------------------
+print(psutil.Process().memory_info().rss / (1024 * 1024))
 print("Loading merger history...")
 
 groupid = np.array([])
@@ -287,6 +319,7 @@ num_part = np.array([])
 num_part_merged_with = np.array([])
 acc_red = np.array([])
 for i in range(num_files):
+    print(f"Loading file {i}...")
     data = pd.read_csv(dirname+history_file+file_ending[i], sep='\s+', lineterminator='\n', header=None, index_col=None, skiprows=16, comment='#').values
     groupid_temp = data[:, 0]
     treeind_temp = data[:, 1]
@@ -303,6 +336,7 @@ for i in range(num_files):
     acc_red = np.concatenate((acc_red, acc_red_temp), axis=None)
 
 n_groups = len(groupid)
+print(f"n_groups = {n_groups}")
 
 # -----------------------------------------------------
 # CREATE HISTORY DICTIONARY
@@ -327,6 +361,8 @@ def write_host_to_dict(sub_id_ind, host_linking):
 		write_host_to_dict(sub_id_ind, merged_with[one_up_id])
 
 # loop once through the history to prepare dict1 and dict2
+print(psutil.Process().memory_info().rss / (1024 * 1024))
+print("Looping through groupids...")
 for id_ind, id_val in enumerate(groupid):
 	host_link = merged_with[id_ind] # id within group of halo higher up
 	if host_link == -1: # check if it is a host
@@ -350,6 +386,7 @@ eta = np.array([eta_x[cdf == min(cdf[(cdf - yy) > 0])][0] for yy in cdf_sample])
 # rcrv: R_c/R_vir, parameter for the orbital energy
 rcrv = np.random.uniform(0.1, 1., n_groups)
 
+print(psutil.Process().memory_info().rss / (1024 * 1024))
 print("Finished loading history.")
 
 # -----------------------------------------------------
@@ -358,11 +395,23 @@ print("Finished loading history.")
 
 # sampling in direction
 rand_ra = np.random.uniform(-np.pi, np.pi, n_groups*num_rep)
+print(psutil.Process().memory_info().rss / (1024 * 1024))
 rand_sindec = np.random.uniform(-1., 1., n_groups*num_rep)
+print(psutil.Process().memory_info().rss / (1024 * 1024))
 rand_dec = np.arcsin(rand_sindec)
+del rand_sindec
+gc.collect()
+print(psutil.Process().memory_info().rss / (1024 * 1024))
 x_rand_prep = np.sin(np.pi/2+rand_dec)*np.cos(rand_ra)
+print(psutil.Process().memory_info().rss / (1024 * 1024))
 y_rand_prep = np.sin(np.pi/2+rand_dec)*np.sin(rand_ra)
+del rand_ra
+gc.collect()
+print(psutil.Process().memory_info().rss / (1024 * 1024))
 z_rand_prep = np.cos(np.pi/2+rand_dec)
+del rand_dec
+gc.collect()
+print(psutil.Process().memory_info().rss / (1024 * 1024))
 #ignoring that massive subhalos should be distributed differently than light ones...
 
 # -----------------------------------------------------
@@ -381,14 +430,15 @@ n_all = 0
 # or when we have completed all files.
 count_files_processed = 0
 
+print(psutil.Process().memory_info().rss / (1024 * 1024))
+print("Starting loop through processed files...")
 for i in range(num_files):
     # ------------------------------
     # CHECK IF WE HAVE PROCESSED ENOUGH FILES,
     # AND STOP IF WE HAVE.
     # ------------------------------
-    if count_files_processed >= NUMBER_OF_FILES_TO_BE_PROCESSED:
-        print(f"Finished processing the minimum requested number of files: {NUMBER_OF_FILES_TO_BE_PROCESSED}")
-        print(f"Actually processed {count_files_processed} files.")
+    if (NUMBER_OF_FILES_TO_BE_PROCESSED is not None) and (count_files_processed >= NUMBER_OF_FILES_TO_BE_PROCESSED):
+        print(f"Finished processing the maximum requested number of files: {NUMBER_OF_FILES_TO_BE_PROCESSED}")
         print("Stopping this job...")
         break
 
@@ -400,7 +450,7 @@ for i in range(num_files):
     # IF SO, CONTINUE TO NEXT FILE
     # ------------------------------
     input_halo_filename = dirname + plc_file + file_ending[i]
-    output_subhalo_filename = dirname + outfile_halos + file_ending[i] + ".txt"
+    output_subhalo_filename = output_dirname + outfile_halos + file_ending[i] + ".txt"
 
     if os.path.exists(output_subhalo_filename):
         print(f"Files have already been created for file ending {i}, skipping this index...")
