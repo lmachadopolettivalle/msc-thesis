@@ -356,17 +356,24 @@ if __name__ == "__main__":
     print("Number of pixels in DECaLS SGC mask", len(set(pixels_in_DECaLS_SGC)))
 
     # Finally, save the resulting masks as bit arrays
+    fullsky_mask = np.zeros(NPIX, dtype=int)
     m = np.zeros(NPIX, dtype=int)
     m[pixels_in_BASS_MzLS] = 1
+    fullsky_mask[pixels_in_BASS_MzLS] = 1
     with open ("/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy", "wb") as f:
         np.save(f, m)
 
     m = np.zeros(NPIX, dtype=int)
     m[pixels_in_DECaLS_NGC] = 1
+    fullsky_mask[pixels_in_DECaLS_NGC] = 1
     with open ("/cluster/scratch/lmachado/DataProducts/masks/DECaLS_NGC_mask.npy", "wb") as f:
         np.save(f, m)
 
     m = np.zeros(NPIX, dtype=int)
     m[pixels_in_DECaLS_SGC] = 1
+    fullsky_mask[pixels_in_DECaLS_SGC] = 1
     with open ("/cluster/scratch/lmachado/DataProducts/masks/DECaLS_SGC_mask.npy", "wb") as f:
         np.save(f, m)
+
+    with open ("/cluster/scratch/lmachado/DataProducts/masks/fullsky_mask.npy", "wb") as f:
+        np.save(f, fullsky_mask)
