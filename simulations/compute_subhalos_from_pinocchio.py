@@ -57,7 +57,7 @@ particle_count_pinocchio = 2048
 
 Z_DEPTH = 0.5
 PINOCCHIO_REGION = "fullsky"
-DESI_region = directories.DECaLS_NGC
+DESI_region = directories.FULLSKY
 
 # Directory containing PINOCCHIO outputs.
 # This is where the subhalo catalog will also be saved at the end of this script.
@@ -94,12 +94,6 @@ outfile_halos = 'pinocchio_masked_halos_subhalos_plc'
 # ------------------------------------------
 # MASKING CONFIGURATION
 # ------------------------------------------
-MASK_FILES = {
-    directories.BASS_MzLS: "/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy",
-    directories.DECaLS_NGC: "/cluster/scratch/lmachado/DataProducts/masks/DECaLS_NGC_mask.npy",
-    directories.DECaLS_SGC: "/cluster/scratch/lmachado/DataProducts/masks/DECaLS_SGC_mask.npy",
-}
-
 # Decide which HEALPix ordering to use
 # Set NEST = False for RING, NEST = True for NEST
 NEST = True
@@ -118,7 +112,7 @@ dec_max = 90
 
 # Path to file containing mask array as a HEALPix map
 # If no mask is desired, set the filename to None, and the full-sky data will be included in the analysis
-infile_footprint = MASK_FILES[DESI_region]
+infile_footprint = directories.MASK_FILES[DESI_region]
 
 # Set a default NSIDE and NPIX and a full-sky mask, in case there is no valid input mask
 NSIDE = 1

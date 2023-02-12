@@ -26,6 +26,8 @@ from sham_model_constants import *
 from ucat import galaxy_sampling_util, io_util
 from ucat.galaxy_population_models import galaxy_luminosity_function
 
+import directories
+
 print("Done importing libraries.")
 
 # ----------------------------------------------------
@@ -39,12 +41,21 @@ m_max = -12
 # This is present in the paths to different input files used in this script.
 particle_count_pinocchio = 2048
 
+Z_DEPTH = 0.5
+PINOCCHIO_REGION = "fullsky"
+DESI_region = directories.FULLSKY
+
 # File path names
-pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
+pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{PINOCCHIO_REGION}_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
 
-outfile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/outputs_sampling/"
+outfile_dir = directories.outputs_sampling_path(
+    particle_count=particle_count_pinocchio,
+    z_depth=Z_DEPTH,
+    pinocchio_region=PINOCCHIO_REGION,
+    DESI_region=DESI_region,
+)
 
-outfile_name = "sampled_BASS"
+outfile_name = "sampled"
 
 outfile_z = f"{outfile_name}_z.npy"
 outfile_absmag = f"{outfile_name}_absmag.npy"
@@ -54,7 +65,7 @@ outfile_redblue = f"{outfile_name}_redblue.npy"
 # If no mask is desired, set the filename to None,
 # in which case the value DEFAULT_PIXAREA will be used,
 # without any further declination cuts
-infile_footprint = "/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy"
+infile_footprint = directories.MASK_FILES[DESI_region]
 
 NEST = True
 
@@ -67,7 +78,7 @@ DEFAULT_PIXAREA = 0.1 * 4 * np.pi # 10% of the sky
 # In this case, the mask is further filtered to only keep its pixels within the
 # provided declination range
 # If this feature is not desired, set dec_min to -90 and dec_max to 90
-dec_min = 30
+dec_min = -90
 dec_max = 90
 
 # ----------------------------------------------------
@@ -206,6 +217,7 @@ cosmo.print_params()
 # ----------------------------------------------------
 # SAMPLE GALAXIES
 # -----------------------------------------------------
+print("Beginning to sample galaxies...")
 n_gal_cal_blue = galaxy_sampling_util.NumGalCalculator(z_max, m_max, lum_fct_alpha_blue, m_star_par_blue, phi_star_par_blue, cosmo, pixarea)
 n_gal_cal_red = galaxy_sampling_util.NumGalCalculator(z_max, m_max, lum_fct_alpha_red, m_star_par_red, phi_star_par_red, cosmo, pixarea)
 

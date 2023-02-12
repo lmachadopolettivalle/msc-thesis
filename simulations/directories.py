@@ -8,6 +8,15 @@ OUTPUTS_SAMPLING = "outputs_sampling"
 BASS_MzLS = "BASS-MzLS"
 DECaLS_NGC = "DECaLS-NGC"
 DECaLS_SGC = "DECaLS-SGC"
+FULLSKY = "fullsky"
+
+MASK_FILES = {
+    BASS_MzLS: "/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy",
+    DECaLS_NGC: "/cluster/scratch/lmachado/DataProducts/masks/DECaLS_NGC_mask.npy",
+    DECaLS_SGC: "/cluster/scratch/lmachado/DataProducts/masks/DECaLS_SGC_mask.npy",
+    FULLSKY: "/cluster/scratch/lmachado/DataProducts/masks/fullsky_mask.npy",
+}
+
 
 def pinocchio_halo_files_path(particle_count=2048, z_depth=0.5, pinocchio_region="north"):
     return f"{PINOCCHIO_BASE}/{particle_count}cubed/z{z_depth:.1f}/{pinocchio_region}/"

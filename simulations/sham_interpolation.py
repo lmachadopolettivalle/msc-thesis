@@ -101,9 +101,9 @@ infile_halos = 'pinocchio_masked_halos_subhalos_plc'
 # Directory where sampling outputs are stored
 infile_ucat_sampling_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{particle_count_pinocchio}cubed/outputs_sampling/"
 
-infile_ucat_z = "sampled_BASS_z.npy"
-infile_ucat_absmag = "sampled_BASS_absmag.npy"
-infile_ucat_redblue = "sampled_BASS_redblue.npy"
+infile_ucat_z = "sampled_z.npy"
+infile_ucat_absmag = "sampled_absmag.npy"
+infile_ucat_redblue = "sampled_redblue.npy"
 
 # Output file names
 output_interp_red = 'red_lim_interp.npz'
