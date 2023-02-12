@@ -14,6 +14,8 @@ import sys
 sys.path.append("..")
 from desiimaginganalysis.mask import mask
 
+import directories
+
 from sham_model_constants import BLUE, RED
 
 # NOTE: very careful when loading both coordinates (x, y, z)
@@ -21,18 +23,25 @@ from sham_model_constants import BLUE, RED
 # Make sure to name them differently, e.g. mag_z and z_coord.
 BANDS = ["mag_g", "mag_r", "mag_z"]
 
-BASS_MzLS = "BASS-MzLS"
-REGIONS = (BASS_MzLS, )
+DESI_region = directories.BASS_MzLS
 
 # Number of particles (cube root) used in run
 # This determines the path where the data is stored
 PARTICLE_COUNT_PINOCCHIO = 2048
+Z_DEPTH = 0.5
+PINOCCHIO_REGION = "fullsky"
 
 # TODO determine run_id via some better way, or loop through all existing run_id values
-run_id = 143
+run_id = 146
 
 # Path where to save 2PCF computed values
-PATH_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{run_id}/2PCF/"
+PATH_2PCF = directories.path_2PCF(
+    particle_count=PARTICLE_COUNT_PINOCCHIO,
+    z_depth=Z_DEPTH,
+    pinocchio_region=PINOCCHIO_REGION,
+    DESI_region=DESI_region,
+    run_id=run_id,
+)
 if os.path.isdir(PATH_2PCF):
     print(f"{PATH_2PCF} directory already exists.")
 else:
@@ -42,8 +51,13 @@ else:
 
 # Load x, y, z positions
 # Path to output data from SHAM
-
-SHAM_OUTPUT_PATH = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{run_id}/interpolation_outputs/"
+SHAM_OUTPUT_PATH = directories.path_interpolation(
+    particle_count=PARTICLE_COUNT_PINOCCHIO,
+    z_depth=Z_DEPTH,
+    pinocchio_region=PINOCCHIO_REGION,
+    DESI_region=DESI_region,
+    run_id=run_id,
+)
 
 galaxies = {}
 for coord in ("x_coord", "y_coord", "z_coord"):
@@ -95,6 +109,12 @@ randoms = {
 
 # Apply mask to randoms
 print("Applying mask to randoms")
+
+if DESI_region == directories.FULLSKY:
+    REGIONS = (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS_SGC, )
+else:
+    REGIONS = (DESI_region, )
+
 
 randoms_masked = mask(randoms["HPXPIXEL"], randoms_nside, regions=REGIONS)
 randoms_ids_in_mask = np.where(randoms_masked > 0)[0]

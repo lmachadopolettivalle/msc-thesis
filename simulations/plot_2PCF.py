@@ -1,13 +1,11 @@
 from matplotlib import pyplot as plt
 import numpy as np
 
+import directories
+
 from manage_parameter_space import get_details_of_run
 
-BASS_MzLS = "BASS-MzLS"
-DECaLS_NGC = "DECaLS-NGC"
-DECaLS_SGC = "DECaLS-SGC"
-
-DESI_REGION = BASS_MzLS
+DESI_REGION = directories.BASS_MzLS
 
 COLORS = {
     14: "C0",
@@ -21,15 +19,23 @@ COLORS = {
 # Number of particles (cube root) used in run
 # This determines the path where the data is stored
 PARTICLE_COUNT_PINOCCHIO = 2048
+Z_DEPTH = 0.5
+PINOCCHIO_REGION = "fullsky"
 
 # Select run_id for 2PCF visualization
-run_id = 100
+run_id = 146
 run_details = get_details_of_run(run_id)
 # Optionally, set a second run_id for a comparison between the two runs
 # If not wanted, set the baseline_run_id to None
 baseline_run_id = None
 
-PATH_SHAM_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{run_id}/2PCF/"
+PATH_SHAM_2PCF = directories.path_2PCF(
+    particle_count=PARTICLE_COUNT_PINOCCHIO,
+    z_depth=Z_DEPTH,
+    pinocchio_region=PINOCCHIO_REGION,
+    DESI_region=DESI_REGION,
+    run_id=run_id,
+)
 PATH_DESI_LS_2PCF = "/cluster/scratch/lmachado/DataProducts/2PCF/"
 
 
@@ -188,7 +194,13 @@ if baseline_run_id is None:
 
 baseline_run_details = get_details_of_run(baseline_run_id)
 
-PATH_BASELINE_SHAM_2PCF = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{baseline_run_id}/2PCF/"
+PATH_BASELINE_SHAM_2PCF = directories.path_2PCF(
+    particle_count=PARTICLE_COUNT_PINOCCHIO,
+    z_depth=Z_DEPTH,
+    pinocchio_region=PINOCCHIO_REGION,
+    DESI_region=DESI_REGION,
+    run_id=baseline_run_id,
+)
 
 fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": [2, 1]})
 
