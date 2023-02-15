@@ -5,15 +5,28 @@ import directories
 
 from manage_parameter_space import get_details_of_run
 
+# Whether to use r-primed
+# Only applies to BASS_MzLS objects
+USE_MAG_R = True
+
 DESI_REGION = directories.BASS_MzLS
 
-COLORS = {
-    14: "C0",
-    15: "C1",
-    16: "C2",
-    17: "C3",
-    18: "C4",
-    19: "C5",
+# Automaticaly set USE_MAG_R to False,
+# if not in BASS-MzLS region
+if DESI_REGION != directories.BASS_MzLS:
+    USE_MAG_R = False
+
+REGION_LINESTYLE = {
+    directories.BASS_MzLS: "solid",
+    directories.DECaLS_NGC: "dashed",
+    directories.DECaLS_SGC: "dashdot",
+    (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS_SGC): "solid",
+}
+REGION_MARKERS = {
+    directories.BASS_MzLS: None,
+    directories.DECaLS_NGC: "o",
+    directories.DECaLS_SGC: "^",
+    (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS_SGC): "*",
 }
 
 # Number of particles (cube root) used in run
@@ -53,16 +66,26 @@ rmag_bins = [
     [19, 19.5],
 ]
 
+COLORS = {
+    #14: "C0",
+    15: "C0",
+    16: "C1",
+    17: "C2",
+    18: "C3",
+    19: "C4",
+}
+
+
 # First plot: compare SHAM 2PCF (all galaxies) vs. DESI LS 2PCF (all galaxies)
 # This plot does NOT include any blue vs. red separation
 fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": [2, 1]})
 
 for rmag_low, rmag_high in rmag_bins:
-    sham_bins_filename = f"simulated_total_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
-    sham_wtheta_filename = f"simulated_total_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
+    sham_bins_filename = f"simulated_total_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
+    sham_wtheta_filename = f"simulated_total_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
 
-    desi_bins_filename = f"{DESI_REGION}_2PCF_bins_Bright_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_unprimed.npy"
-    desi_wtheta_filename = f"{DESI_REGION}_2PCF_wtheta_Bright_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_unprimed.npy"
+    desi_bins_filename = f"{DESI_REGION}_2PCF_bins_Bright_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if USE_MAG_R else 'unprimed'}.npy"
+    desi_wtheta_filename = f"{DESI_REGION}_2PCF_wtheta_Bright_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if USE_MAG_R else 'unprimed'}.npy"
 
     with open(f"{PATH_SHAM_2PCF}/{sham_bins_filename}", "rb") as f:
         sham_bins = np.load(f)
@@ -140,22 +163,29 @@ LINESTYLES = {
 
 for rmag_low, rmag_high in rmag_bins:
     for color_name, linestyle in LINESTYLES.items():
-        sham_bins_filename = f"simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
-        sham_wtheta_filename = f"simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
+        sham_bins_filename = f"simulated_{color_name}_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
+        sham_wtheta_filename = f"simulated_{color_name}_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
 
-        with open(f"{PATH_SHAM_2PCF}/{sham_bins_filename}", "rb") as f:
-            sham_bins = np.load(f)
-        with open(f"{PATH_SHAM_2PCF}/{sham_wtheta_filename}", "rb") as f:
-            sham_wtheta = np.load(f)
+        try:
+            with open(f"{PATH_SHAM_2PCF}/{sham_bins_filename}", "rb") as f:
+                sham_bins = np.load(f)
+            with open(f"{PATH_SHAM_2PCF}/{sham_wtheta_filename}", "rb") as f:
+                sham_wtheta = np.load(f)
+        except FileNotFoundError as e:
+            print(e)
+            print(f"Skipping color_name {color_name}...")
+            break
 
         # Due to 1-halo term issue,
         # only plot BLUE 2PCF
         # above a certain theta
+        """
         if color_name == "blue":
             theta_cut = 0.1
             ids = np.where(sham_bins >= theta_cut)[0]
             sham_bins = sham_bins[ids]
             sham_wtheta = sham_wtheta[ids]
+        """
 
         # Only use label for total,
         # so we don't repeat labels
@@ -186,8 +216,113 @@ plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_RE
 
 plt.show()
 
+
 # --------------------
-# Third plot: Compare 2PCF between two run IDs
+# Third plot: compare SHAM for each of the three regions (BASS-MzLS, DECaLS-NGC, DECaLS-SGC)
+# This plot does NOT include any blue vs. red separation
+fig, ax = plt.subplots(1, 1, figsize=(14, 8))
+
+for region in (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS_SGC):
+    # Reset colors, to use same colors for any given rmag range across all regions
+    ax.set_prop_cycle(None)
+
+    for rmag_low, rmag_high in rmag_bins:
+        path_2PCF_region = directories.path_2PCF(
+            particle_count=PARTICLE_COUNT_PINOCCHIO,
+            z_depth=Z_DEPTH,
+            pinocchio_region=PINOCCHIO_REGION,
+            DESI_region=region,
+            run_id=run_id,
+        )
+        sham_bins_filename = f"simulated_total_2PCF_{'rprimed_' if (USE_MAG_R and (region==directories.BASS_MzLS)) else ''}{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
+        sham_wtheta_filename = f"simulated_total_2PCF_{'rprimed_' if (USE_MAG_R and (region==directories.BASS_MzLS)) else ''}{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
+
+        with open(f"{path_2PCF_region}/{sham_bins_filename}", "rb") as f:
+            bins = np.load(f)
+        with open(f"{path_2PCF_region}/{sham_wtheta_filename}", "rb") as f:
+            wtheta = np.load(f)
+
+        ax.plot(
+            bins,
+            wtheta,
+            linewidth=LINEWIDTH,
+            linestyle=REGION_LINESTYLE[region],
+            color=COLORS[int(rmag_low)],
+            marker=REGION_MARKERS[region],
+            label=f"{rmag_low:.1f} < r < {rmag_high:.1f}, {region}",
+        )
+
+ax.legend(loc="upper right", ncol=3)
+
+ax.set_xscale("log")
+ax.set_yscale("log")
+
+ax.set_xlabel(r"$\theta$ [deg]")
+ax.set_ylabel(r"$w(\theta)$")
+
+ax.set_xlim([2e-3, 20])
+ax.set_ylim([1e-4, 100])
+
+ax.grid()
+
+fig.suptitle("SHAM Comparison between Regions")
+
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_compare_SHAMregions_{PARTICLE_COUNT_PINOCCHIO}_{run_id}.pdf")
+
+plt.show()
+
+# --------------------
+# Fourth plot: Compare r-primed and r 2PCF for BASS
+# This plot does NOT include any blue vs. red separation
+fig, ax = plt.subplots(1, 1)
+
+for is_prime in (True, False):
+    for rmag_low, rmag_high in rmag_bins:
+        path_2PCF_region = directories.path_2PCF(
+            particle_count=PARTICLE_COUNT_PINOCCHIO,
+            z_depth=Z_DEPTH,
+            pinocchio_region=PINOCCHIO_REGION,
+            DESI_region=directories.BASS_MzLS,
+            run_id=run_id,
+        )
+        sham_bins_filename = f"simulated_total_2PCF_{'rprimed_' if is_prime else ''}{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
+        sham_wtheta_filename = f"simulated_total_2PCF_{'rprimed_' if is_prime else ''}{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
+
+        with open(f"{path_2PCF_region}/{sham_bins_filename}", "rb") as f:
+            bins = np.load(f)
+        with open(f"{path_2PCF_region}/{sham_wtheta_filename}", "rb") as f:
+            wtheta = np.load(f)
+
+        ax.plot(
+            bins,
+            wtheta,
+            linewidth=LINEWIDTH,
+            linestyle=("dashed" if is_prime else "solid"),
+            color=COLORS[int(rmag_low)],
+            label=f"{rmag_low:.1f} < r < {rmag_high:.1f}, {'Primed' if is_prime else 'Unprimed'}",
+        )
+
+ax.legend(loc="upper right", ncol=2)
+
+ax.set_xscale("log")
+ax.set_yscale("log")
+
+ax.set_xlabel(r"$\theta$ [deg]")
+ax.set_ylabel(r"$w(\theta)$")
+
+ax.set_xlim([2e-3, 20])
+ax.set_ylim([1e-4, 100])
+
+ax.grid()
+
+ax.set_title("SHAM 2PCF, r-primed vs. r, BASS-MzLS")
+
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_compare_rprimed_{PARTICLE_COUNT_PINOCCHIO}_{run_id}.pdf")
+
+plt.show()
+
+# --------------------
+# Fifth plot: Compare 2PCF between two run IDs
 if baseline_run_id is None:
     print("Baseline run ID has not been set. Exiting program.")
     exit()
