@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --mem-per-cpu=4096
-#SBATCH -n 24
+#SBATCH --mem-per-cpu=3900
+#SBATCH -n 100
 #SBATCH -N 1
 #SBATCH -t 00:20:00
 #SBATCH --mail-type=FAIL
