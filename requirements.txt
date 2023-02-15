@@ -19,6 +19,7 @@ halotools
 # PINOCCHIO
 
 # PyCosmo, UFig, UCat
+mpl-scatter-density
 pandas
 psutil
 six
