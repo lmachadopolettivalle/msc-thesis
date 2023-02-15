@@ -4,19 +4,28 @@
 from matplotlib import pyplot as plt
 import numpy as np
 
+import directories
+
 BANDS = ["g", "r", "z"]
-BASS_MzLS = "BASS-MzLS"
-DECaLS_NGC = "DECaLS-NGC"
-DECaLS_SGC = "DECaLS-SGC"
 
 # Number of particles (cube root) used in run
 # This determines the path where the data is stored
-PARTICLE_COUNT_PINOCCHIO = 512
+PARTICLE_COUNT_PINOCCHIO = 2048
+Z_DEPTH = 0.5
+PINOCCHIO_REGION = "fullsky"
+
+DESI_region = directories.BASS_MzLS
 
 # Path to output data from SHAM
 # TODO determine run_id via some better way, or loop through all existing run_id values
-run_id = 100
-SHAM_OUTPUT_PATH = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{PARTICLE_COUNT_PINOCCHIO}cubed/{run_id}/interpolation_outputs/"
+run_id = 146
+SHAM_OUTPUT_PATH = directories.path_interpolation(
+    particle_count=PARTICLE_COUNT_PINOCCHIO,
+    z_depth=Z_DEPTH,
+    pinocchio_region=PINOCCHIO_REGION,
+    DESI_region=DESI_region,
+    run_id=run_id,
+)
 SHAM_OUTPUT_FILENAME_PREFIX = "ucat_sorted_app_mag_interp_app_mag_"
 
 # Parameters for plotting
@@ -58,7 +67,7 @@ for band in BANDS:
 
     plt.xlim([14, 22])
 
-    plt.title("SHAM apparent magnitudes, BASS/MzLS filters")
+    plt.title("SHAM apparent magnitudes, BASS-MzLS filters")
     plt.xlabel(f"{band} apparent magnitude")
     plt.ylabel("Count")
 

@@ -2,17 +2,29 @@ import matplotlib
 from matplotlib import pyplot as plt
 import numpy as np
 
+import directories
+
 from manage_parameter_space import get_details_of_run
 
 plt.rcParams["font.size"] = "12"
 #plt.rcParams["figure.figsize"] = (30, 8) # Default: (6.4, 4.8)
 
 pinocchio_particle_count = 2048
+Z_DEPTH = 0.5
+PINOCCHIO_REGION = "fullsky"
 
-run_id = 143
+DESI_region = directories.BASS_MzLS
+
+run_id = 146
 
 # Directory containing output data from SHAM
-infile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{pinocchio_particle_count}cubed/{run_id}/interpolation_outputs/"
+infile_dir = directories.path_interpolation(
+    particle_count=pinocchio_particle_count,
+    z_depth=Z_DEPTH,
+    pinocchio_region=PINOCCHIO_REGION,
+    DESI_region=DESI_region,
+    run_id=run_id,
+)
 infile_hist_blue = "blue_lim_interp.npz"
 infile_hist_red = "red_lim_interp.npz"
 

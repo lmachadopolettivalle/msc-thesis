@@ -9,14 +9,20 @@ import re
 from scipy.interpolate import griddata
 from tqdm import tqdm
 
+import directories
+
 from manage_parameter_space import get_details_of_run
 
 plt.rcParams["font.size"] = "12"
 
 pinocchio_particle_count = 2048
+Z_DEPTH = 0.5
+PINOCCHIO_REGION = "fullsky"
+
+DESI_region = directories.BASS_MzLS
 
 # Loop through desired run IDs
-DESIRED_RUN_IDS = [144, 145]
+DESIRED_RUN_IDS = [146]
 
 for run_id in tqdm(DESIRED_RUN_IDS):
     # File with output of SHAM run.
@@ -24,7 +30,13 @@ for run_id in tqdm(DESIRED_RUN_IDS):
     sham_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/sham_int_job_{pinocchio_particle_count}_{run_id}_output"
 
     # Directory containing output data from SHAM
-    infile_dir = f"/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/luis_runs/{pinocchio_particle_count}cubed/{run_id}/interpolation_outputs/"
+    infile_dir = directories.path_interpolation(
+        particle_count=pinocchio_particle_count,
+        z_depth=Z_DEPTH,
+        pinocchio_region=PINOCCHIO_REGION,
+        DESI_region=DESI_region,
+        run_id=run_id,
+    )
     infile_hist_blue = "blue_lim_interp.npz"
     infile_hist_red = "red_lim_interp.npz"
 
