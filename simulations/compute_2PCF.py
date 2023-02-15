@@ -18,10 +18,19 @@ import directories
 
 from sham_model_constants import BLUE, RED
 
+# Equation 2 in Zarrouk+21
+def rmag_bass_correction(unprimed_rmags, unprimed_gmags):
+    assert len(unprimed_rmags) == len(unprimed_gmags)
+    return unprimed_rmags - 0.039 * (unprimed_gmags - unprimed_rmags) + 0.011
+
 # NOTE: very careful when loading both coordinates (x, y, z)
 # and bands (g, r, z), since there is an overlap of names (z).
-# Make sure to name them differently, e.g. mag_z and z_coord.
+# Make sure to name them differently, e.g. mag_z and z_coord
 BANDS = ["mag_g", "mag_r", "mag_z"]
+
+# Whether to use r-primed
+# Only applies to BASS_MzLS objects
+USE_MAG_R = True
 
 DESI_region = directories.BASS_MzLS
 
@@ -71,6 +80,12 @@ for band in BANDS:
 
     galaxies[band] = np.load(filename)
 
+# For BASS, compute r-primed magnitudes
+if (USE_MAG_R is True) and (DESI_region == directories.BASS_MzLS):
+    galaxies["mag_r"] = rmag_bass_correction(
+        galaxies["mag_r"],
+        galaxies["mag_g"],
+    )
 
 # Load whether galaxies are blue or red
 filename = f"{SHAM_OUTPUT_PATH}/ucat_sorted_app_mag_interp_blue_red.npy"
@@ -103,7 +118,7 @@ with open(f"/cluster/scratch/lmachado/DataProducts/randoms/randoms_pixels_NSIDE_
 # Range used to filter randoms was chosen via trial and error, to make sure
 # there is a similar number of randoms and targets
 randoms = {
-    k: v[:3000000]
+    k: v[:10000000]
     for k, v in randoms.items()
 }
 
@@ -150,7 +165,11 @@ print("Computing 2PCF for regions", REGIONS)
 
 
 # Compute 2PCF, for blue and red galaxies separately
-for color_name, color_value in (("total", None), ("blue", BLUE), ("red", RED)):
+for color_name, color_value in (
+        ("total", None),
+        #("blue", BLUE),
+        #("red", RED)
+    ):
     print(f"Computing 2PCF for {color_name} galaxies")
 
     if color_value is None:
@@ -190,9 +209,9 @@ for color_name, color_value in (("total", None), ("blue", BLUE), ("red", RED)):
             DR_counts, RR_counts
         )
 
-        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy", "wb") as f:
+        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_bins.npy", "wb") as f:
             np.save(f, bins[:-1])
-        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy", "wb") as f:
+        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy", "wb") as f:
             np.save(f, wtheta)
 
 print("Done computing 2PCF")
