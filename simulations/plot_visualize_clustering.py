@@ -132,7 +132,7 @@ for g, color in (
 
 # Plot Gaussian KDE
 SIZE = 35000
-X, Y = np.mgrid[RA_MIN:RA_MAX:100j, DEC_MIN:DEC_MAX:100j]
+X, Y = np.mgrid[RA_MIN:RA_MAX:128j, DEC_MIN:DEC_MAX:128j]
 
 positions = np.vstack([X.ravel(), Y.ravel()])
 
@@ -153,10 +153,11 @@ for g, color in (
 
     cax = ax.imshow(
         np.rot90(Z),
-        cmap=plt.cm.Greys,
+        #cmap=plt.cm.Greys,
+        cmap="jet",
         extent=[RA_MIN, RA_MAX, DEC_MIN, DEC_MAX],
         vmin=0,
-        vmax=5e-3,
+        vmax=3.5e-3,
         #vmax=3e-3,
     )
 

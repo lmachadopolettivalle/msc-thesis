@@ -19,7 +19,7 @@ import directories
 
 from sham_model_constants import BLUE, RED
 
-RNG = default_rng(seed=42)
+RNG = default_rng(seed=420)
 
 plt.rcParams["font.size"] = "12"
 plt.rcParams["figure.figsize"] = (9, 6)
@@ -32,7 +32,7 @@ BANDS = ["mag_g", "mag_r", "mag_z"]
 DESI_region = directories.DECaLS_NGC
 
 # Range of r apparent magnitude used to select objects
-RMAG_MIN, RMAG_MAX = 19, 19.5
+RMAG_MIN, RMAG_MAX = 17, 18
 
 # Number of particles (cube root) used in run
 # This determines the path where the data is stored
@@ -96,6 +96,8 @@ galaxies["DEC"] = np.degrees(np.pi/2 - theta)
 print(min(galaxies["RA"]), max(galaxies["RA"]))
 print(min(galaxies["DEC"]), max(galaxies["DEC"]))
 
+
+####################
 # Filter objects based on r-magnitude
 rmag_mask = (galaxies["mag_r"] >= RMAG_MIN) & (galaxies["mag_r"] < RMAG_MAX)
 for k, v in galaxies.items():
@@ -106,7 +108,7 @@ mask = (np.abs(galaxies["DEC"]) < 5)
 for k, v in galaxies.items():
     galaxies[k] = v[mask]
 
-fraction = 1
+fraction = 2e-2
 
 ids = RNG.choice(
     len(galaxies["redshift"]),
@@ -120,8 +122,8 @@ fig, ax = plt.subplots(1, 1, subplot_kw={"projection": "polar"})
 ax.scatter(
     np.radians(galaxies["RA"][ids]),
     galaxies["redshift"][ids],
-    s=0.5,
-    alpha=0.05,
+    s=0.3,
+    alpha=1,
     c="black",
 )
 
@@ -170,6 +172,14 @@ colors[
     galaxies["blue_red"] == BLUE
 ] = blue_color
 
+fraction = 1
+
+ids = RNG.choice(
+    len(galaxies["redshift"]),
+    size=int(fraction * len(galaxies["redshift"])),
+    replace=False,
+)
+
 ax.scatter(
     np.radians(galaxies["RA"][ids]),
     galaxies["redshift"][ids],
@@ -217,6 +227,14 @@ fig, ax = plt.subplots(1, 1, subplot_kw={"projection": "polar"})
 
 print(min(galaxies["abs_mag"]), max(galaxies["abs_mag"]))
 
+fraction = 1
+
+ids = RNG.choice(
+    len(galaxies["redshift"]),
+    size=int(fraction * len(galaxies["redshift"])),
+    replace=False,
+)
+
 cax = ax.scatter(
     np.radians(galaxies["RA"][ids]),
     galaxies["redshift"][ids],
@@ -225,10 +243,10 @@ cax = ax.scatter(
     c=galaxies["abs_mag"][ids],
     vmin=-22,
     vmax=-18,
-    cmap="gist_rainbow",
+    cmap="YlOrRd_r",
 )
 
-plt.colorbar(cax, label="Abs. Magnitude")
+plt.colorbar(cax, label="Abs. Magnitude", fraction=0.046, pad=0.04, shrink=0.5)
 
 ax.set_theta_offset(
     np.radians(
@@ -257,7 +275,7 @@ ax.text(
     va="center",
 )
 
-fig.subplots_adjust(bottom=0, top=1, left=0, right=1)
+fig.subplots_adjust(bottom=0, top=0.8, left=0.1, right=0.7)
 
 plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/SHAM_polarplot_galaxyabsmag_{RMAG_MIN:.1f}_{RMAG_MAX:.1f}_{DESI_region}.png")
 
