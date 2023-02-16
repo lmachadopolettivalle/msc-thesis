@@ -9,7 +9,7 @@ from manage_parameter_space import get_details_of_run
 # Only applies to BASS_MzLS objects
 USE_MAG_R = True
 
-DESI_REGION = directories.BASS_MzLS
+DESI_REGION = directories.DECaLS_SGC
 
 # Automaticaly set USE_MAG_R to False,
 # if not in BASS-MzLS region
@@ -138,8 +138,8 @@ ax_top.set_ylabel(r"$w(\theta)$")
 ax_bottom.set_xlabel(r"$\theta$ [deg]")
 ax_bottom.set_ylabel("Ratio")
 
-ax_top.set_xlim([2e-3, 5])
-ax_top.set_ylim([1e-4, 100])
+ax_top.set_xlim([1e-2, 5])
+ax_top.set_ylim([1e-4, 10])
 ax_bottom.set_ylim([0.5, 1.5])
 
 ax_top.grid()
@@ -208,8 +208,8 @@ plt.yscale("log")
 plt.xlabel(r"$\theta$ [deg]")
 plt.ylabel(r"$w(\theta)$")
 plt.title(f"SHAM Comparison: all (-) vs. blue (--) vs. red (...)\n{DESI_REGION}")
-plt.xlim([2e-3, 5])
-plt.ylim([1e-4, 100])
+plt.xlim([1e-2, 5])
+plt.ylim([1e-4, 10])
 plt.grid()
 
 plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_SHAMRedvsBlue_{PARTICLE_COUNT_PINOCCHIO}_{run_id}.pdf")
@@ -252,7 +252,7 @@ for region in (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS
             label=f"{rmag_low:.1f} < r < {rmag_high:.1f}, {region}",
         )
 
-ax.legend(loc="upper right", ncol=3)
+ax.legend(loc="lower left", ncol=3)
 
 ax.set_xscale("log")
 ax.set_yscale("log")
@@ -260,12 +260,12 @@ ax.set_yscale("log")
 ax.set_xlabel(r"$\theta$ [deg]")
 ax.set_ylabel(r"$w(\theta)$")
 
-ax.set_xlim([2e-3, 20])
-ax.set_ylim([1e-4, 100])
+ax.set_xlim([1e-2, 5])
+ax.set_ylim([1e-4, 10])
 
 ax.grid()
 
-fig.suptitle("SHAM Comparison between Regions")
+ax.set_title("SHAM Comparison between Regions")
 
 fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_compare_SHAMregions_{PARTICLE_COUNT_PINOCCHIO}_{run_id}.pdf")
 
@@ -297,12 +297,12 @@ for is_prime in (True, False):
             bins,
             wtheta,
             linewidth=LINEWIDTH,
-            linestyle=("dashed" if is_prime else "solid"),
+            linestyle=("solid" if is_prime else "dashed"),
             color=COLORS[int(rmag_low)],
             label=f"{rmag_low:.1f} < r < {rmag_high:.1f}, {'Primed' if is_prime else 'Unprimed'}",
         )
 
-ax.legend(loc="upper right", ncol=2)
+ax.legend(loc="lower left", ncol=2)
 
 ax.set_xscale("log")
 ax.set_yscale("log")
@@ -310,8 +310,8 @@ ax.set_yscale("log")
 ax.set_xlabel(r"$\theta$ [deg]")
 ax.set_ylabel(r"$w(\theta)$")
 
-ax.set_xlim([2e-3, 20])
-ax.set_ylim([1e-4, 100])
+ax.set_xlim([1e-2, 5])
+ax.set_ylim([1e-4, 10])
 
 ax.grid()
 
@@ -394,8 +394,8 @@ ax_top.set_ylabel(r"$w(\theta)$")
 ax_bottom.set_xlabel(r"$\theta$ [deg]")
 ax_bottom.set_ylabel("Ratio")
 
-ax_top.set_xlim([2e-3, 5])
-ax_top.set_ylim([1e-4, 100])
+ax_top.set_xlim([1e-2, 5])
+ax_top.set_ylim([1e-4, 10])
 
 ax_top.grid()
 ax_bottom.grid()
