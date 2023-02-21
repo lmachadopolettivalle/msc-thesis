@@ -39,8 +39,6 @@ RMAG_MIN, RMAG_MAX = 17, 18
 PARTICLE_COUNT_PINOCCHIO = 2048
 Z_DEPTH = 0.5
 PINOCCHIO_REGION = "fullsky"
-
-# TODO determine run_id via some better way, or loop through all existing run_id values
 run_id = 146
 
 # Range of theta to be displayed
@@ -96,6 +94,114 @@ galaxies["DEC"] = np.degrees(np.pi/2 - theta)
 print(min(galaxies["RA"]), max(galaxies["RA"]))
 print(min(galaxies["DEC"]), max(galaxies["DEC"]))
 
+####################
+# Separate red and blue galaxies
+red_mask = galaxies["blue_red"] == RED
+blue_mask = galaxies["blue_red"] == BLUE
+red_galaxies = {k: v[red_mask] for k, v in galaxies.items()}
+blue_galaxies = {k: v[blue_mask] for k, v in galaxies.items()}
+
+####################
+# Plot redshift distribution of reds and blues for each r-magnitude bin
+rmag_bins = [
+    [15, 16],
+    [16, 17],
+    [17, 18],
+    [18, 19],
+    [19, 19.5],
+]
+COLORS = {
+    15: "C0",
+    16: "C1",
+    17: "C2",
+    18: "C3",
+    19: "C4",
+}
+
+LINESTYLES = {
+    "blue": "solid",
+    "red": "dashed",
+}
+HISTTYPES = {
+    "blue": "step",
+    "red": "stepfilled",
+}
+ALPHAS = {
+    "blue": 1,
+    "red": 0.4,
+}
+
+fig, ax = plt.subplots(1, 1)
+
+for g, color in (
+        (blue_galaxies, "blue"),
+        (red_galaxies, "red"),
+    ):
+
+    for rmag_low, rmag_high in rmag_bins:
+        tmp_mask = (g["mag_r"] >= rmag_low) & (g["mag_r"] < rmag_high)
+
+        ax.hist(
+            g["redshift"][tmp_mask],
+            label=f"{rmag_low:.1f} < r < {rmag_high:.1f}, {color.capitalize()}",
+            color=COLORS[rmag_low],
+            bins=40,
+            histtype=HISTTYPES[color],
+            alpha=ALPHAS[color],
+            density=True,
+            lw=2,
+            ls=LINESTYLES[color],
+        )
+
+ax.set_xlabel("Redshift")
+ax.set_ylabel("PDF")
+
+ax.set_xlim([0, 0.5])
+ax.set_ylim([0, 25])
+
+ax.set_title("Blue vs. Red galaxies, redshift distribution")
+
+ax.legend(ncol=2)
+
+ax.grid()
+
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/SHAM_redshift_distributions_{DESI_region}.png")
+
+plt.show()
+
+####################
+# Plot abs. mag. distribution of reds and blues,
+# to show that reds are brighter than blues
+fig, ax = plt.subplots(1, 1)
+
+for g, color in (
+        (blue_galaxies, "blue"),
+        (red_galaxies, "red"),
+    ):
+
+    ax.hist(
+        g["abs_mag"],
+        label=f"{color.capitalize()}",
+        color=color,
+        bins=40,
+        histtype="step",
+        density=True,
+        lw=2,
+        ls=LINESTYLES[color],
+    )
+
+ax.set_xlabel("Absolute Magnitude")
+ax.set_ylabel("PDF")
+
+ax.set_title("Blue vs. Red galaxies, absolute magnitude distribution")
+
+ax.legend()
+
+ax.grid()
+
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/SHAM_absmag_distributions_{DESI_region}.png")
+
+plt.show()
 
 ####################
 # Filter objects based on r-magnitude
@@ -104,11 +210,11 @@ for k, v in galaxies.items():
     galaxies[k] = v[rmag_mask]
 
 # Filter to only galaxies close to declination = 0
-mask = (np.abs(galaxies["DEC"]) < 5)
+dec_mask = (np.abs(galaxies["DEC"]) < 1)
 for k, v in galaxies.items():
-    galaxies[k] = v[mask]
+    galaxies[k] = v[dec_mask]
 
-fraction = 2e-2
+fraction = 1e-1
 
 ids = RNG.choice(
     len(galaxies["redshift"]),
@@ -116,13 +222,14 @@ ids = RNG.choice(
     replace=False,
 )
 
+####################
 # Create polar plot with galaxies
 fig, ax = plt.subplots(1, 1, subplot_kw={"projection": "polar"})
 
 ax.scatter(
     np.radians(galaxies["RA"][ids]),
     galaxies["redshift"][ids],
-    s=0.3,
+    s=0.5,
     alpha=1,
     c="black",
 )
@@ -222,7 +329,7 @@ plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/SHAM_polarplo
 plt.show()
 
 ####################
-# Color galaxies by absolute magnitude
+# Color galaxies by g - r
 fig, ax = plt.subplots(1, 1, subplot_kw={"projection": "polar"})
 
 print(min(galaxies["abs_mag"]), max(galaxies["abs_mag"]))
@@ -240,13 +347,13 @@ cax = ax.scatter(
     galaxies["redshift"][ids],
     s=0.1,
     alpha=1,
-    c=galaxies["abs_mag"][ids],
-    vmin=-22,
-    vmax=-18,
-    cmap="YlOrRd_r",
+    c=(galaxies["mag_g"][ids] - galaxies["mag_r"][ids]),
+    vmin=0.4,
+    vmax=1,
+    cmap="RdBu_r",
 )
 
-plt.colorbar(cax, label="Abs. Magnitude", fraction=0.046, pad=0.04, shrink=0.5)
+plt.colorbar(cax, label="g - r", fraction=0.046, pad=0.04, shrink=0.5)
 
 ax.set_theta_offset(
     np.radians(
@@ -257,7 +364,7 @@ ax.set_thetamin(BEGIN)
 ax.set_thetamax(END)
 ax.set_rmax(0.5)
 
-ax.set_title(f"Galaxy Absolute Magnitudes, {RMAG_MIN:.1f} < r < {RMAG_MAX:.1f}, {DESI_region}")
+ax.set_title(f"Galaxy g - r Colors, {RMAG_MIN:.1f} < r < {RMAG_MAX:.1f}, {DESI_region}")
 ax.text(
     np.radians(90),
     0.3,
