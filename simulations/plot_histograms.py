@@ -6,33 +6,11 @@ import numpy as np
 
 import directories
 
-BANDS = ["g", "r", "z"]
-
-# Number of particles (cube root) used in run
-# This determines the path where the data is stored
-PARTICLE_COUNT_PINOCCHIO = 2048
-Z_DEPTH = 0.5
-PINOCCHIO_REGION = "fullsky"
-
-DESI_region = directories.BASS_MzLS
-
-# Path to output data from SHAM
-# TODO determine run_id via some better way, or loop through all existing run_id values
-run_id = 146
-SHAM_OUTPUT_PATH = directories.path_interpolation(
-    particle_count=PARTICLE_COUNT_PINOCCHIO,
-    z_depth=Z_DEPTH,
-    pinocchio_region=PINOCCHIO_REGION,
-    DESI_region=DESI_region,
-    run_id=run_id,
-)
-SHAM_OUTPUT_FILENAME_PREFIX = "ucat_sorted_app_mag_interp_app_mag_"
+from load_sham_galaxies import load_sham_galaxies
 
 # Parameters for plotting
 bin_count = 70
-
 LINEWIDTH = 1.5
-
 ALPHA = 0.5
 
 # Color choices
@@ -42,7 +20,26 @@ red = "#bb5566"
 orange = "#EE7733"
 teal = "#009988"
 
-plt.rcParams['font.size'] = '12'
+plt.rcParams['font.size'] = "12"
+
+# Number of particles (cube root) used in run
+# This determines the path where the data is stored
+PARTICLE_COUNT_PINOCCHIO = 2048
+Z_DEPTH = 0.5
+PINOCCHIO_REGION = "fullsky"
+DESI_region = directories.BASS_MzLS
+run_id = 146
+
+# Load galaxy data from SHAM
+galaxies = load_sham_galaxies(
+    particle_count=PARTICLE_COUNT_PINOCCHIO,
+    z_depth=Z_DEPTH,
+    pinocchio_region=PINOCCHIO_REGION,
+    DESI_region=DESI_region,
+    run_id=run_id,
+)
+
+print("Number of objects:", len(galaxies["mag_r"]))
 
 # Determine binning for each color band
 bins = {
@@ -51,16 +48,9 @@ bins = {
     "z": np.linspace(15, 20.5, bin_count),
 }
 
-for band in BANDS:
-    filename = f"{SHAM_OUTPUT_PATH}/{SHAM_OUTPUT_FILENAME_PREFIX}{band}.npy"
-
-    with open(filename, 'rb') as f:
-        data = np.load(f)
-
-    print(f"Number of objects: {len(data)}")
-
+for band in bins.keys():
     plt.hist(
-        data,
+        galaxies[f"mag_{band}"],
         bins=bins[band],
         color=teal,
     )
