@@ -24,12 +24,12 @@ from sham_model_constants import BLUE, RED
 RNG = default_rng(seed=420)
 
 plt.rcParams["font.size"] = "12"
-plt.rcParams["figure.figsize"] = (9, 6)
+plt.rcParams["figure.figsize"] = (18, 12)
 
 DESI_region = directories.DECaLS_NGC
 
 # Range of r apparent magnitude used to select objects
-RMAG_MIN, RMAG_MAX = 17, 18
+RMAG_MIN, RMAG_MAX = -np.inf, 19.5
 
 # Number of particles (cube root) used in run
 # This determines the path where the data is stored
@@ -61,133 +61,23 @@ red_galaxies = {k: v[red_mask] for k, v in galaxies.items()}
 blue_galaxies = {k: v[blue_mask] for k, v in galaxies.items()}
 
 ####################
-# Plot redshift distribution of reds and blues for each r-magnitude bin
-rmag_bins = [
-    [15, 16],
-    [16, 17],
-    [17, 18],
-    [18, 19],
-    [19, 19.5],
-]
-COLORS = {
-    15: "C0",
-    16: "C1",
-    17: "C2",
-    18: "C3",
-    19: "C4",
-}
-
-LINESTYLES = {
-    "blue": "solid",
-    "red": "dashed",
-}
-HISTTYPES = {
-    "blue": "step",
-    "red": "stepfilled",
-}
-ALPHAS = {
-    "blue": 1,
-    "red": 0.4,
-}
-
-fig, ax = plt.subplots(1, 1)
-
-for g, color in (
-        (blue_galaxies, "blue"),
-        (red_galaxies, "red"),
-    ):
-
-    for rmag_low, rmag_high in rmag_bins:
-        tmp_mask = (g["mag_r"] >= rmag_low) & (g["mag_r"] < rmag_high)
-
-        ax.hist(
-            g["redshift"][tmp_mask],
-            label=f"{rmag_low:.1f} < r < {rmag_high:.1f}, {color.capitalize()}",
-            color=COLORS[rmag_low],
-            bins=40,
-            histtype=HISTTYPES[color],
-            alpha=ALPHAS[color],
-            density=True,
-            lw=2,
-            ls=LINESTYLES[color],
-        )
-
-ax.set_xlabel("Redshift")
-ax.set_ylabel("PDF")
-
-ax.set_xlim([0, 0.5])
-ax.set_ylim([0, 25])
-
-ax.set_title("Blue vs. Red galaxies, redshift distribution")
-
-ax.legend(ncol=2)
-
-ax.grid()
-
-fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/SHAM_redshift_distributions_{DESI_region}.png")
-
-plt.show()
-
-####################
-# Plot abs. mag. distribution of reds and blues,
-# to show that reds are brighter than blues
-fig, ax = plt.subplots(1, 1)
-
-for g, color in (
-        (blue_galaxies, "blue"),
-        (red_galaxies, "red"),
-    ):
-
-    ax.hist(
-        g["abs_mag"],
-        label=f"{color.capitalize()}",
-        color=color,
-        bins=40,
-        histtype="step",
-        density=True,
-        lw=2,
-        ls=LINESTYLES[color],
-    )
-
-ax.set_xlabel("Absolute Magnitude")
-ax.set_ylabel("PDF")
-
-ax.set_title("Blue vs. Red galaxies, absolute magnitude distribution")
-
-ax.legend()
-
-ax.grid()
-
-fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/SHAM_absmag_distributions_{DESI_region}.png")
-
-plt.show()
-
-####################
 # Filter objects based on r-magnitude
 rmag_mask = (galaxies["mag_r"] >= RMAG_MIN) & (galaxies["mag_r"] < RMAG_MAX)
 for k, v in galaxies.items():
     galaxies[k] = v[rmag_mask]
 
 # Filter to only galaxies close to declination = 0
-dec_mask = (np.abs(galaxies["DEC"]) < 1)
+dec_mask = (np.abs(galaxies["DEC"]) < 0.1)
 for k, v in galaxies.items():
     galaxies[k] = v[dec_mask]
-
-fraction = 1e-1
-
-ids = RNG.choice(
-    len(galaxies["redshift"]),
-    size=int(fraction * len(galaxies["redshift"])),
-    replace=False,
-)
 
 ####################
 # Create polar plot with galaxies
 fig, ax = plt.subplots(1, 1, subplot_kw={"projection": "polar"})
 
 ax.scatter(
-    np.radians(galaxies["RA"][ids]),
-    galaxies["redshift"][ids],
+    np.radians(galaxies["RA"]),
+    galaxies["redshift"],
     s=0.5,
     alpha=1,
     c="black",
@@ -238,20 +128,12 @@ colors[
     galaxies["blue_red"] == BLUE
 ] = blue_color
 
-fraction = 1
-
-ids = RNG.choice(
-    len(galaxies["redshift"]),
-    size=int(fraction * len(galaxies["redshift"])),
-    replace=False,
-)
-
 ax.scatter(
-    np.radians(galaxies["RA"][ids]),
-    galaxies["redshift"][ids],
+    np.radians(galaxies["RA"]),
+    galaxies["redshift"],
     s=0.5,
-    alpha=0.1,
-    c=colors[ids],
+    alpha=0.3,
+    c=colors,
 )
 
 ax.set_theta_offset(
@@ -293,20 +175,12 @@ fig, ax = plt.subplots(1, 1, subplot_kw={"projection": "polar"})
 
 print(min(galaxies["abs_mag"]), max(galaxies["abs_mag"]))
 
-fraction = 1
-
-ids = RNG.choice(
-    len(galaxies["redshift"]),
-    size=int(fraction * len(galaxies["redshift"])),
-    replace=False,
-)
-
 cax = ax.scatter(
-    np.radians(galaxies["RA"][ids]),
-    galaxies["redshift"][ids],
+    np.radians(galaxies["RA"]),
+    galaxies["redshift"],
     s=0.1,
     alpha=1,
-    c=(galaxies["mag_g"][ids] - galaxies["mag_r"][ids]),
+    c=(galaxies["mag_g"] - galaxies["mag_r"]),
     vmin=0.4,
     vmax=1,
     cmap="RdBu_r",
@@ -343,6 +217,6 @@ ax.text(
 
 fig.subplots_adjust(bottom=0, top=0.8, left=0.1, right=0.7)
 
-plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/SHAM_polarplot_galaxyabsmag_{RMAG_MIN:.1f}_{RMAG_MAX:.1f}_{DESI_region}.png")
+plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/SHAM_polarplot_gminusr_{RMAG_MIN:.1f}_{RMAG_MAX:.1f}_{DESI_region}.png")
 
 plt.show()
