@@ -6,6 +6,8 @@
 import numpy as np
 import os
 
+from desitarget.io import desitarget_resolve_dec
+
 import Corrfunc
 from Corrfunc.mocks.DDtheta_mocks import DDtheta_mocks
 from Corrfunc.utils import convert_3d_counts_to_cf
@@ -34,7 +36,7 @@ BANDS = ["mag_g", "mag_r", "mag_z"]
 # Only applies to BASS_MzLS objects
 USE_MAG_R = True
 
-DESI_region = directories.BASS_MzLS
+DESI_region = directories.FULLSKY
 
 # Number of particles (cube root) used in run
 # This determines the path where the data is stored
@@ -58,6 +60,7 @@ else:
     os.mkdir(PATH_2PCF)
     print("Created output directory successfully.")
 
+print("Loading galaxy data")
 # Load galaxy data from SHAM
 galaxies = load_sham_galaxies(
     particle_count=PARTICLE_COUNT_PINOCCHIO,
@@ -68,11 +71,20 @@ galaxies = load_sham_galaxies(
 )
 
 # For BASS, compute r-primed magnitudes
-if (USE_MAG_R is True) and (DESI_region == directories.BASS_MzLS):
-    galaxies["mag_r"] = rmag_bass_correction(
-        galaxies["mag_r"],
-        galaxies["mag_g"],
-    )
+if (USE_MAG_R is True):
+    if (DESI_region == directories.BASS_MzLS):
+        galaxies["mag_r"] = rmag_bass_correction(
+            galaxies["mag_r"],
+            galaxies["mag_g"],
+        )
+    elif (DESI_region == directories.FULLSKY):
+        dec_mask = (galaxies["DEC"] >= desitarget_resolve_dec())
+        galaxies["mag_r"][dec_mask] = rmag_bass_correction(
+            galaxies["mag_r"][dec_mask],
+            galaxies["mag_g"][dec_mask],
+        )
+
+print("Done loading galaxy data")
 
 # Load randoms, apply mask
 print("Loading randoms")
@@ -87,8 +99,11 @@ with open(f"/cluster/scratch/lmachado/DataProducts/randoms/randoms_pixels_NSIDE_
 
 # Range used to filter randoms was chosen via trial and error, to make sure
 # there is a similar number of randoms and targets
+RANDOMS_SIZE = 10000000
+if DESI_region == directories.FULLSKY:
+    RANDOMS_SIZE = 20000000
 randoms = {
-    k: v[:10000000]
+    k: v[:RANDOMS_SIZE]
     for k, v in randoms.items()
 }
 

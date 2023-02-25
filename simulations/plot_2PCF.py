@@ -9,24 +9,29 @@ from manage_parameter_space import get_details_of_run
 # Only applies to BASS_MzLS objects
 USE_MAG_R = True
 
-DESI_REGION = directories.DECaLS_SGC
+DESI_REGION = directories.FULLSKY
+
+if DESI_REGION == directories.FULLSKY:
+    EQUIVALENT_DESI_REGION = (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS_SGC)
+else:
+    EQUIVALENT_DESI_REGION = DESI_REGION
 
 # Automaticaly set USE_MAG_R to False,
 # if not in BASS-MzLS region
-if DESI_REGION != directories.BASS_MzLS:
+if DESI_REGION not in (directories.BASS_MzLS, directories.FULLSKY):
     USE_MAG_R = False
 
 REGION_LINESTYLE = {
     directories.BASS_MzLS: "solid",
     directories.DECaLS_NGC: "dashed",
     directories.DECaLS_SGC: "dashdot",
-    (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS_SGC): "solid",
+    directories.FULLSKY: "solid",
 }
 REGION_MARKERS = {
     directories.BASS_MzLS: None,
     directories.DECaLS_NGC: "o",
     directories.DECaLS_SGC: "^",
-    (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS_SGC): "*",
+    directories.FULLSKY: "*",
 }
 
 # Number of particles (cube root) used in run
@@ -84,8 +89,8 @@ for rmag_low, rmag_high in rmag_bins:
     sham_bins_filename = f"simulated_total_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
     sham_wtheta_filename = f"simulated_total_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
 
-    desi_bins_filename = f"{DESI_REGION}_2PCF_bins_Bright_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if USE_MAG_R else 'unprimed'}.npy"
-    desi_wtheta_filename = f"{DESI_REGION}_2PCF_wtheta_Bright_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if USE_MAG_R else 'unprimed'}.npy"
+    desi_bins_filename = f"{EQUIVALENT_DESI_REGION}_2PCF_bins_Bright_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if USE_MAG_R else 'unprimed'}.npy"
+    desi_wtheta_filename = f"{EQUIVALENT_DESI_REGION}_2PCF_wtheta_Bright_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if USE_MAG_R else 'unprimed'}.npy"
 
     with open(f"{PATH_SHAM_2PCF}/{sham_bins_filename}", "rb") as f:
         sham_bins = np.load(f)
@@ -218,13 +223,17 @@ plt.show()
 
 
 # --------------------
-# Third plot: compare SHAM for each of the three regions (BASS-MzLS, DECaLS-NGC, DECaLS-SGC)
+# Third plot: compare SHAM for each of the four regions (BASS-MzLS, DECaLS-NGC, DECaLS-SGC)
 # This plot does NOT include any blue vs. red separation
-fig, ax = plt.subplots(1, 1, figsize=(14, 8))
+fig, ax = plt.subplots(1, 1, figsize=(10, 8))
 
-for region in (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS_SGC):
+plotted_lines = []
+
+for region in (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS_SGC, directories.FULLSKY):
     # Reset colors, to use same colors for any given rmag range across all regions
     ax.set_prop_cycle(None)
+
+    tmp_plotted_lines = []
 
     for rmag_low, rmag_high in rmag_bins:
         path_2PCF_region = directories.path_2PCF(
@@ -234,15 +243,19 @@ for region in (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS
             DESI_region=region,
             run_id=run_id,
         )
-        sham_bins_filename = f"simulated_total_2PCF_{'rprimed_' if (USE_MAG_R and (region==directories.BASS_MzLS)) else ''}{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
-        sham_wtheta_filename = f"simulated_total_2PCF_{'rprimed_' if (USE_MAG_R and (region==directories.BASS_MzLS)) else ''}{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
+        if USE_MAG_R and (region in (directories.BASS_MzLS, directories.FULLSKY)):
+            primed_text = "rprimed_"
+        else:
+            primed_text = ""
+        sham_bins_filename = f"simulated_total_2PCF_{primed_text}{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
+        sham_wtheta_filename = f"simulated_total_2PCF_{primed_text}{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
 
         with open(f"{path_2PCF_region}/{sham_bins_filename}", "rb") as f:
             bins = np.load(f)
         with open(f"{path_2PCF_region}/{sham_wtheta_filename}", "rb") as f:
             wtheta = np.load(f)
 
-        ax.plot(
+        line, = ax.plot(
             bins,
             wtheta,
             linewidth=LINEWIDTH,
@@ -252,7 +265,23 @@ for region in (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS
             label=f"{rmag_low:.1f} < r < {rmag_high:.1f}, {region}",
         )
 
-ax.legend(loc="lower left", ncol=3)
+        tmp_plotted_lines.append(line)
+
+    plotted_lines.append(tmp_plotted_lines)
+
+rmags_legend = ax.legend(
+    plotted_lines[0],
+    [f"{rmag_low:.1f} < r < {rmag_high:.1f}" for (rmag_low, rmag_high) in rmag_bins],
+    loc="upper right",
+)
+
+_ = ax.legend(
+    [i[0] for i in plotted_lines],
+    [directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS_SGC, directories.FULLSKY],
+    loc="lower left",
+)
+
+ax.add_artist(rmags_legend)
 
 ax.set_xscale("log")
 ax.set_yscale("log")
