@@ -19,7 +19,6 @@
 print("Importing required libraries...")
 
 import argparse
-import concurrent.futures
 import h5py
 from manage_parameter_space import get_details_of_run
 import numpy as np
@@ -32,6 +31,8 @@ import scipy.integrate
 from sham_model_constants import *
 from ucat import galaxy_sampling_util, io_util
 from ucat.galaxy_population_models import galaxy_luminosity_function, galaxy_sed
+
+from desitarget.io import desitarget_resolve_dec
 
 import directories
 
@@ -67,6 +68,7 @@ quenching_time = run_details["quenching_time"]
 # NOTE that the filter lum_fct_filter_band (defined in the other .py script)
 # is added to this list, to work well with the luminosity function
 if region == directories.BASS_MzLS:
+    APPLY_DIFFERENT_FILTERS = False
     print("Using BASS/MzLS filters")
     desired_filters = {
         "g": "BASSMzLS_g",
@@ -74,6 +76,7 @@ if region == directories.BASS_MzLS:
         "z": "BASSMzLS_z",
     }
 elif (region == directories.DECaLS_NGC) or (region == directories.DECaLS_SGC):
+    APPLY_DIFFERENT_FILTERS = False
     print("Using DECam filters")
     desired_filters = {
         "g": "DECam_g",
@@ -81,7 +84,18 @@ elif (region == directories.DECaLS_NGC) or (region == directories.DECaLS_SGC):
         "z": "DECam_z",
     }
 else:
-    raise NotImplementedError(f"Filters for {region} not implemented")
+    print("Using BOTH filters, based on region of the sky")
+    APPLY_DIFFERENT_FILTERS = True
+    bass_desired_filters = {
+        "g": "BASSMzLS_g",
+        "r": "BASSMzLS_r",
+        "z": "BASSMzLS_z",
+    }
+    decam_desired_filters = {
+        "g": "DECam_g",
+        "r": "DECam_r",
+        "z": "DECam_z",
+    }
 
 
 pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{PINOCCHIO_REGION}_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
@@ -151,7 +165,10 @@ gals_mag_min = 10
 # NO NEED TO MODIFY BELOW THIS LINE
 # -----------------------------------------------------
 # Add the luminosity function-related filter to the list of desired filters
-loop_filter_names = [lum_fct_filter_band] + list(desired_filters.values())
+if APPLY_DIFFERENT_FILTERS:
+    loop_filter_names = [lum_fct_filter_band] + list(bass_desired_filters.values()) + list(decam_desired_filters.values())
+else:
+    loop_filter_names = [lum_fct_filter_band] + list(desired_filters.values())
 
 # ----------------------------------------------------
 # SET PYCOSMO COSMOLOGY
@@ -295,9 +312,11 @@ print("Finished n_templates")
 # LOAD GALAXIES
 # -----------------------------------------------------
 
+print("Loading UCat data as inputs")
 abs_mag = np.load(infile_ucat_sampling_dir + infile_ucat_absmag)
 z_ucat = np.load(infile_ucat_sampling_dir + infile_ucat_z)
 blue_red = np.load(infile_ucat_sampling_dir + infile_ucat_redblue)
+print("Done loading UCat data")
 
 # Sort by absolute magnitude before performing SHAM
 abs_mag_inds_sorted = np.argsort(abs_mag)
@@ -404,6 +423,7 @@ def process_halo_subhalo_file(i):
     # LOAD HALO-SUBHALO FILE
     # -----------------------------------------------------
     filename = infile_subhalos_dir + infile_subhalos + file_ending[i] + '.txt'
+    print(filename)
     data = pd.read_csv(filename, sep='\s+', lineterminator='\n', header=None, index_col=None, skipinitialspace=True).values
 
     mass = data[:, 1].copy()
@@ -463,14 +483,59 @@ def process_halo_subhalo_file(i):
     # ----------------------------------------------------–
     # CALCULATE APPARENT MAGNITUDES
     # -----------------------------------------------------
-    temp_app_mag_dict = {}
-    for k in app_mag_dict.keys():
-        temp_app_mag_dict[k] = mag_calc(
-            z_temp,
-            excess_b_v,
-            template_coeffs,
-            [desired_filters[k]]
-        )[desired_filters[k]]
+    if APPLY_DIFFERENT_FILTERS:
+        # Procedure:
+        # 1. Compute magnitudes for all galaxies using BASS filters and then using DECam filters
+        # 2. Compute RA and Dec for each galaxy based on x, y, z coordinates
+        # 3. Based on RA and Dec, determine whether each galaxy belongs to BASS/MzLS or DECaLS regions
+        # 4. Assign correct magnitude to each galaxy based on their region
+        bass_temp_app_mag_dict = {}
+        decam_temp_app_mag_dict = {}
+        temp_app_mag_dict = {}
+
+        for k in app_mag_dict.keys():
+            bass_temp_app_mag_dict[k] = mag_calc(
+                z_temp,
+                excess_b_v,
+                template_coeffs,
+                [bass_desired_filters[k]]
+            )[bass_desired_filters[k]]
+            decam_temp_app_mag_dict[k] = mag_calc(
+                z_temp,
+                excess_b_v,
+                template_coeffs,
+                [decam_desired_filters[k]]
+            )[decam_desired_filters[k]]
+
+            # Set as default the values using DECam filters
+            temp_app_mag_dict[k] = decam_temp_app_mag_dict[k]
+
+        # Determine RA and Dec based on x, y, z coordinates
+        radii = np.sqrt(x_coord_temp**2 + y_coord_temp**2 + z_coord_temp**2)
+
+        theta = np.arccos(z_coord_temp / radii)
+        phi = np.arctan2(y_coord_temp, x_coord_temp)
+
+        # Note that phi is in range [-pi, pi], but for healpy, must be in range [0, 360 degrees]
+        phi[phi < 0] += 2 * np.pi
+
+        RA_temp = np.degrees(phi)
+        DEC_temp = np.degrees(np.pi/2 - theta)
+
+        # Mask with galaxies belonging to the BASS/MzLS region
+        bass_mask = (DEC_temp >= desitarget_resolve_dec())
+
+        for k in app_mag_dict.keys():
+            temp_app_mag_dict[k][bass_mask] = bass_temp_app_mag_dict[k][bass_mask]
+    else:
+        temp_app_mag_dict = {}
+        for k in app_mag_dict.keys():
+            temp_app_mag_dict[k] = mag_calc(
+                z_temp,
+                excess_b_v,
+                template_coeffs,
+                [desired_filters[k]]
+            )[desired_filters[k]]
 
     # ----------------------------------------------------–
     # APPLY CUTS IN APPARENT MAGNITUDES
@@ -516,10 +581,16 @@ z = np.array([])
 abs_mag = np.array([])
 blue_red = np.array([])
 
-app_mag_dict = {
-    k: np.array([])
-    for k in desired_filters.keys()
-}
+if APPLY_DIFFERENT_FILTERS:
+    app_mag_dict = {
+        k: np.array([])
+        for k in bass_desired_filters.keys()
+    }
+else:
+    app_mag_dict = {
+        k: np.array([])
+        for k in desired_filters.keys()
+    }
 
 halo_mass = np.array([])
 x_coord = np.array([])
