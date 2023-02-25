@@ -20,7 +20,7 @@ BANDS = ["mag_g", "mag_r", "mag_z"]
 
 # Parameters for plotting
 plt.rcParams["font.size"] = "12"
-plt.rcParams["figure.figsize"] = (16, 12)
+plt.rcParams["figure.figsize"] = (8, 6)
 
 # DESI Region to be loaded
 DESI_region = directories.DECaLS_NGC
@@ -55,24 +55,25 @@ ra_dec_filtering = (galaxies["RA"] >= RA_MIN) & (galaxies["RA"] < RA_MAX) & (gal
 # - No cut in apparent magnitude
 # - Color and size based on absolute magnitude
 # - Split into reds vs. blues
-REDSHIFT_MIN, REDSHIFT_MAX = 0.3, 0.35
+REDSHIFT_MIN, REDSHIFT_MAX = 0.3, 0.31
 
 red_mask = (galaxies["blue_red"] == RED)
 blue_mask = (galaxies["blue_red"] == BLUE)
 
 redshift_filtering = ra_dec_filtering & (galaxies["redshift"] >= REDSHIFT_MIN) & (galaxies["redshift"] < REDSHIFT_MAX)
 
-redshift_filtering_size = (-1 * galaxies["abs_mag"] - 20) * 10 + 30
+redshift_filtering_size = (-240 * galaxies["abs_mag"] - 5020)
 
 blue_redshift_filtering_config = {
     "mask": blue_mask & redshift_filtering,
-    "colorbar_label": "Abs. Mag.",
+    "colorbar_label": "Absolute Magnitude",
     "colorbar_field": galaxies["abs_mag"],
     "colormap": "YlOrRd_r",
     "colorbar_vmin": -23,
-    "colorbar_vmax": -18,
+    "colorbar_vmax": -19,
     "size_field": redshift_filtering_size,
     "title": f"Blue galaxies, {REDSHIFT_MIN:.2f} < z < {REDSHIFT_MAX:.2f}, {DESI_region}",
+    "galaxy_color": "blue",
 }
 red_redshift_filtering_config = {
     "mask": red_mask & redshift_filtering,
@@ -80,9 +81,10 @@ red_redshift_filtering_config = {
     "colorbar_field": galaxies["abs_mag"],
     "colormap": "YlOrRd_r",
     "colorbar_vmin": -23,
-    "colorbar_vmax": -18,
+    "colorbar_vmax": -19,
     "size_field": redshift_filtering_size,
-    "title": f"Blue galaxies, {REDSHIFT_MIN:.2f} < z < {REDSHIFT_MAX:.2f}, {DESI_region}",
+    "title": f"Red galaxies, {REDSHIFT_MIN:.2f} < z < {REDSHIFT_MAX:.2f}, {DESI_region}",
+    "galaxy_color": "red",
 }
 
 ####################
@@ -100,11 +102,12 @@ app_mag_filtering_config = {
     "mask": app_mag_filtering,
     "colorbar_label": "g - r",
     "colorbar_field": galaxies["mag_g"] - galaxies["mag_r"],
-    "colormap": "jet",
+    "colormap": "RdBu_r",
     "colorbar_vmin": 0.4,
     "colorbar_vmax": 1.0,
-    "size_field": np.full(len(galaxies["mag_r"]), 16),
+    "size_field": np.full(len(galaxies["mag_r"]), 60),
     "title": f"All galaxies, r < {RMAG_MAX:.1f}, {DESI_region} region",
+    "galaxy_color": "all",
 }
 
 ####################
@@ -144,11 +147,11 @@ for filtering_config in [
     ax.set_xlim([RA_MIN, RA_MAX])
     ax.set_ylim([DEC_MIN, DEC_MAX])
 
-    plt.tight_layout()
-
     ax.set_aspect("equal")
 
-    #fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/Scatter_{DESI_region}_{RMAG_MAX}_{color}.pdf")
+    plt.tight_layout()
+
+    fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/Scatter_{DESI_region}_{RMAG_MAX}_{filtering_config['galaxy_color']}.pdf")
 
     plt.show()
 
@@ -176,8 +179,8 @@ for filtering_config in [
         np.rot90(Z),
         cmap="jet",
         extent=[RA_MIN, RA_MAX, DEC_MIN, DEC_MAX],
-        #vmin=0,
-        #vmax=0.16,
+        vmin=0,
+        vmax=0.6,
     )
 
     fig.colorbar(cax, label=r"PDF ($deg^{-2}$)")
@@ -189,10 +192,10 @@ for filtering_config in [
     ax.set_ylabel("Dec (degrees)")
     ax.set_title(filtering_config["title"])
 
-    plt.tight_layout()
-
     ax.set_aspect("equal")
 
-    #fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/GaussianKDE_{DESI_region}_{RMAG_MAX}_{color}.pdf")
+    plt.tight_layout()
+
+    fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/GaussianKDE_{DESI_region}_{RMAG_MAX}_{filtering_config['galaxy_color']}.pdf")
 
     plt.show()

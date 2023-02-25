@@ -181,6 +181,7 @@ fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/SHAM_absmag_d
 
 plt.show()
 
+"""
 ####################
 # TODO create sbatch script, since it requires lots of memory
 # TODO also compare redshift distributions for different r bins,
@@ -234,5 +235,48 @@ ax.legend()
 ax.grid()
 
 fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/UCAT_absmag_distributions_{DESI_region}.png")
+
+plt.show()
+"""
+
+####################
+# Plot g - r and r - z color histograms
+# g - r
+fig, ax = plt.subplots(1, 1)
+ax.hist(
+    galaxies["mag_g"] - galaxies["mag_r"],
+    color=teal,
+    density=True,
+    bins=50,
+)
+
+#plt.xlim([14, 22])
+
+ax.set_title("SHAM g - r colors, BASS-MzLS filters")
+ax.set_xlabel("g - r")
+ax.set_ylabel("PDF")
+
+ax.grid()
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/gminusr_hist_simulated.pdf")
+
+plt.show()
+
+# r - z
+fig, ax = plt.subplots(1, 1)
+ax.hist(
+    galaxies["mag_r"] - galaxies["mag_z"],
+    color=teal,
+    density=True,
+    bins=50,
+)
+
+#plt.xlim([14, 22])
+
+ax.set_title("SHAM r - z colors, BASS-MzLS filters")
+ax.set_xlabel("r - z")
+ax.set_ylabel("PDF")
+
+ax.grid()
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/rminusz_hist_simulated.pdf")
 
 plt.show()
