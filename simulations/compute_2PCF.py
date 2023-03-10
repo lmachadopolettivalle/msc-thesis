@@ -43,7 +43,7 @@ DESI_region = directories.FULLSKY
 PARTICLE_COUNT_PINOCCHIO = 2048
 Z_DEPTH = 0.5
 PINOCCHIO_REGION = "fullsky"
-run_id = 146
+run_id = 143
 
 # Path where to save 2PCF computed values
 PATH_2PCF = directories.path_2PCF(
