@@ -16,11 +16,6 @@ if DESI_REGION == directories.FULLSKY:
 else:
     EQUIVALENT_DESI_REGION = DESI_REGION
 
-# Automaticaly set USE_MAG_R to False,
-# if not in BASS-MzLS region
-if DESI_REGION not in (directories.BASS_MzLS, directories.FULLSKY):
-    USE_MAG_R = False
-
 REGION_LINESTYLE = {
     directories.BASS_MzLS: "solid",
     directories.DECaLS_NGC: "dashed",
@@ -41,7 +36,7 @@ Z_DEPTH = 0.5
 PINOCCHIO_REGION = "fullsky"
 
 # Select run_id for 2PCF visualization
-run_id = 146
+run_id = 151
 run_details = get_details_of_run(run_id)
 # Optionally, set a second run_id for a comparison between the two runs
 # If not wanted, set the baseline_run_id to None
@@ -83,14 +78,14 @@ COLORS = {
 
 # First plot: compare SHAM 2PCF (all galaxies) vs. DESI LS 2PCF (all galaxies)
 # This plot does NOT include any blue vs. red separation
-fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": [2, 1]})
+fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True, figsize=(12, 4.8), gridspec_kw={"height_ratios": [2, 1]})
 
 for rmag_low, rmag_high in rmag_bins:
     sham_bins_filename = f"simulated_total_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
     sham_wtheta_filename = f"simulated_total_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
 
-    desi_bins_filename = f"{EQUIVALENT_DESI_REGION}_2PCF_bins_Bright_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if USE_MAG_R else 'unprimed'}.npy"
-    desi_wtheta_filename = f"{EQUIVALENT_DESI_REGION}_2PCF_wtheta_Bright_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if USE_MAG_R else 'unprimed'}.npy"
+    desi_bins_filename = f"{EQUIVALENT_DESI_REGION}_2PCF_bins_Bright_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if USE_MAG_R and (DESI_REGION in (directories.BASS_MzLS, directories.FULLSKY)) else 'unprimed'}.npy"
+    desi_wtheta_filename = f"{EQUIVALENT_DESI_REGION}_2PCF_wtheta_Bright_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if USE_MAG_R and (DESI_REGION in (directories.BASS_MzLS, directories.FULLSKY)) else 'unprimed'}.npy"
 
     with open(f"{PATH_SHAM_2PCF}/{sham_bins_filename}", "rb") as f:
         sham_bins = np.load(f)
@@ -145,7 +140,7 @@ ax_bottom.set_ylabel("Ratio")
 
 ax_top.set_xlim([1e-2, 5])
 ax_top.set_ylim([1e-4, 10])
-ax_bottom.set_ylim([0.5, 1.5])
+ax_bottom.set_ylim([0, 1.5])
 
 ax_top.grid()
 ax_bottom.grid()
@@ -157,6 +152,8 @@ fig.suptitle(f"DESI LS (-) vs. SHAM (--)\n{DESI_REGION}")
 fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_compareSHAMvsDESI_{PARTICLE_COUNT_PINOCCHIO}_{run_id}.pdf")
 
 plt.show()
+
+exit() # TODO
 
 # --------------------
 # Second plot: compare SHAM 2PCF total vs. red vs. blue galaxies
@@ -243,7 +240,7 @@ for region in (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS
             DESI_region=region,
             run_id=run_id,
         )
-        if USE_MAG_R and (region in (directories.BASS_MzLS, directories.FULLSKY)):
+        if USE_MAG_R:
             primed_text = "rprimed_"
         else:
             primed_text = ""

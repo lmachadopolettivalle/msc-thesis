@@ -3,9 +3,10 @@
 # determine their RA and Dec,
 # and compute the angular correlation function
 
-import argparse
-
 import numpy as np
+from numpy.random import default_rng
+RNG = default_rng(seed=42)
+
 import os
 
 from desitarget.io import desitarget_resolve_dec
@@ -38,18 +39,14 @@ BANDS = ["mag_g", "mag_r", "mag_z"]
 # Only applies to BASS_MzLS objects
 USE_MAG_R = True
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--run_id", type=int, required=True)
-parser.add_argument("--region", type=str, required=True)
-args = parser.parse_args()
-run_id = args.run_id
-DESI_region = args.region
+DESI_region = directories.FULLSKY
 
 # Number of particles (cube root) used in run
 # This determines the path where the data is stored
 PARTICLE_COUNT_PINOCCHIO = 2048
 Z_DEPTH = 0.5
 PINOCCHIO_REGION = "fullsky"
+run_id = 143
 
 # Path where to save 2PCF computed values
 PATH_2PCF = directories.path_2PCF(
@@ -108,6 +105,7 @@ with open(f"/cluster/scratch/lmachado/DataProducts/randoms/randoms_pixels_NSIDE_
 RANDOMS_SIZE = 10000000
 if DESI_region == directories.FULLSKY:
     RANDOMS_SIZE = 20000000
+RANDOMS_SIZE = 600000 # TODO
 randoms = {
     k: v[:RANDOMS_SIZE]
     for k, v in randoms.items()
@@ -134,7 +132,7 @@ print("Total random count (after masking):", len(randoms["RA"]))
 
 # Compute 2PCF for different r-mag bins
 rmag_bins = [
-    [14, 15],
+    #[14, 15],
     [15, 16],
     [16, 17],
     [17, 18],
@@ -154,6 +152,8 @@ randoms_count = len(randoms["RA"])
 
 print("Computing 2PCF for regions", REGIONS)
 
+# Number of bootstrapping iterations
+N_Bootstrapping = 2 # TODO
 
 # Compute 2PCF, for blue and red galaxies separately
 for color_name, color_value in (
@@ -175,6 +175,10 @@ for color_name, color_value in (
 
 
     for rmag_low, rmag_high in rmag_bins:
+        # We will run N bootstrapping iterations to compute the 2PCF
+        # We need to save wtheta for each of the N runs
+        wthetas_bootstrapping = np.zeros((N_Bootstrapping, nbins))
+
         print(rmag_low, rmag_high)
         rmag_ids = np.where(
             (rmag_low <= color_galaxies["mag_r"]) &
@@ -187,22 +191,44 @@ for color_name, color_value in (
 
         # Count number of targets and randoms
         targets_count = len(rmag_filtered_targets["RA"])
+        subsample_size = min(100000, targets_count)
 
         print("Targets count:", targets_count)
 
-        DD_counts = DDtheta_mocks(1, nthreads, bins, rmag_filtered_targets["RA"], rmag_filtered_targets["DEC"])
-        DR_counts = DDtheta_mocks(0, nthreads, bins, rmag_filtered_targets["RA"], rmag_filtered_targets["DEC"], RA2=randoms["RA"], DEC2=randoms["DEC"])
+        # For each bootstrapping iteration, obtain the same number of galaxies,
+        # by sampling with repetition
+        for i in range(N_Bootstrapping):
+            print(f"Sampling for bootstrapping iteration {i}...")
+            sampled_ids = RNG.choice(
+                targets_count,
+                size=subsample_size,
+                replace=False,
+            )
+            print(f"Done sampling for bootstrapping iteration {i}")
 
-        wtheta = convert_3d_counts_to_cf(
-            targets_count, targets_count,
-            randoms_count, randoms_count,
-            DD_counts, DR_counts,
-            DR_counts, RR_counts
-        )
 
-        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_bins.npy", "wb") as f:
+            print(f"Computing wtheta for iteration {i}...")
+            DD_counts = DDtheta_mocks(1, nthreads, bins, rmag_filtered_targets["RA"][sampled_ids], rmag_filtered_targets["DEC"][sampled_ids])
+            DR_counts = DDtheta_mocks(0, nthreads, bins, rmag_filtered_targets["RA"][sampled_ids], rmag_filtered_targets["DEC"][sampled_ids], RA2=randoms["RA"], DEC2=randoms["DEC"])
+
+            wtheta = convert_3d_counts_to_cf(
+                targets_count, targets_count,
+                randoms_count, randoms_count,
+                DD_counts, DR_counts,
+                DR_counts, RR_counts
+            )
+
+            wthetas_bootstrapping[i, :] = wtheta
+            print(f"Done computing wtheta for iteration {i}...")
+
+        # After N bootstrapping iterations, store the average and the 1-sigma error
+        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_bins_BOOTSTRAPTEST.npy", "wb") as f: # TODO
             np.save(f, bins[:-1])
-        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy", "wb") as f:
-            np.save(f, wtheta)
+        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_wtheta_BOOTSTRAPTEST.npy", "wb") as f: # TODO
+            average = np.average(wthetas_bootstrapping, axis=0)
+            np.save(f, average)
+        with open(f"{PATH_2PCF}/simulated_{color_name}_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_errors_BOOTSTRAPTEST.npy", "wb") as f: # TODO
+            errors = np.std(wthetas_bootstrapping, axis=0)
+            np.save(f, errors)
 
 print("Done computing 2PCF")
