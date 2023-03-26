@@ -13,8 +13,13 @@ from load_sham_galaxies import load_sham_galaxies
 
 from sham_model_constants import BLUE, RED
 
+import sys
+sys.path.append("..")
+from desiimaginganalysis.load_processed_target_data import load_processed_target_data
+from desiimaginganalysis.constants import BGS_BRIGHT
+
 # Parameters for plotting
-bin_count = 70
+bin_count = 90
 LINEWIDTH = 1.5
 ALPHA = 0.5
 
@@ -25,15 +30,16 @@ red = "#bb5566"
 orange = "#EE7733"
 teal = "#009988"
 
-plt.rcParams["font.size"] = "12"
-plt.rcParams["figure.figsize"] = (9, 6)
+plt.rcParams["font.size"] = "16"
+plt.rcParams["savefig.pad_inches"] = 0.05
+plt.rcParams["savefig.bbox"] = "tight"
 
 # Number of particles (cube root) used in run
 # This determines the path where the data is stored
 PARTICLE_COUNT_PINOCCHIO = 2048
 Z_DEPTH = 0.5
 PINOCCHIO_REGION = "fullsky"
-DESI_region = directories.BASS_MzLS
+DESI_region = directories.DECaLS_NGC
 run_id = 146
 
 # Load galaxy data from SHAM
@@ -54,6 +60,15 @@ red_galaxies = {k: v[red_mask] for k, v in galaxies.items()}
 blue_galaxies = {k: v[blue_mask] for k, v in galaxies.items()}
 
 ####################
+# Load DESI LS dataset
+desi_galaxies = load_processed_target_data(regions={DESI_region}, extinction_correction=True, apply_mask=True)
+bright_desi_galaxies_mask = np.where(desi_galaxies["BGS_TARGET"] == BGS_BRIGHT)[0]
+desi_galaxies = {
+    k: v[bright_desi_galaxies_mask]
+    for k, v in desi_galaxies.items()
+}
+
+####################
 # Determine binning for each color band
 bins = {
     "g": np.linspace(15, 22, bin_count),
@@ -61,23 +76,113 @@ bins = {
     "z": np.linspace(15, 20.5, bin_count),
 }
 
-for band in bins.keys():
-    plt.hist(
+fig, axs = plt.subplots(nrows=1, ncols=3, sharey=True, figsize=(12.5, 5))
+fig.subplots_adjust(wspace=0.15)
+for ax, band in zip(axs, bins.keys()):
+    if band == "r":
+        desi_band = "r_primed"
+    else:
+        desi_band = band
+
+    ax.hist(
         galaxies[f"mag_{band}"],
         bins=bins[band],
-        color=teal,
+        color=blue,
+        density=True,
+        histtype="step",
+        label="SHAM",
+        linewidth=LINEWIDTH,
     )
 
-    plt.xlim([14, 22])
+    ax.hist(
+        desi_galaxies[f"MAG_{desi_band.upper()}"],
+        bins=bins[band],
+        color=blue,
+        alpha=ALPHA,
+        density=True,
+        histtype="stepfilled",
+        label="DESI LS",
+    )
 
-    plt.title("SHAM apparent magnitudes, BASS-MzLS filters")
-    plt.xlabel(f"{band} apparent magnitude")
-    plt.ylabel("Count")
+    ax.set_xlim([14, 22])
 
-    plt.grid()
-    plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/{band}mag_hist_simulated.pdf")
+    ax.set_xlabel(f"{band} mag")
 
-    plt.show()
+    ax.grid()
+
+    if band == "g":
+        ax.legend(loc="upper left")
+
+fig.supylabel("PDF")
+
+fig.savefig("/cluster/home/lmachado/msc-thesis/simulations/images/mag_hist_simulated.pdf")
+
+plt.show()
+
+####################
+# Plot g - r and r - z color histograms
+# g - r
+fig, axs = plt.subplots(nrows=1, ncols=2, sharey=True, figsize=(8, 5))
+fig.subplots_adjust(wspace=0.15)
+
+bins_color_histograms = np.linspace(-1, 2, bin_count)
+
+axs[0].hist(
+    galaxies["mag_g"] - galaxies["mag_r"],
+    bins=bins_color_histograms,
+    color=blue,
+    density=True,
+    histtype="step",
+    label="SHAM",
+    linewidth=LINEWIDTH,
+)
+
+axs[0].hist(
+    desi_galaxies["MAG_G"] - desi_galaxies["MAG_R"],
+    bins=bins_color_histograms,
+    color=blue,
+    alpha=ALPHA,
+    density=True,
+    histtype="stepfilled",
+    label="DESI LS",
+)
+
+axs[0].set_xlim([0, 2])
+axs[0].set_xlabel("g - r")
+axs[0].grid()
+
+# r - z
+axs[1].hist(
+    galaxies["mag_r"] - galaxies["mag_z"],
+    bins=bins_color_histograms,
+    color=blue,
+    density=True,
+    histtype="step",
+    label="SHAM",
+    linewidth=LINEWIDTH,
+)
+
+axs[1].hist(
+    desi_galaxies["MAG_R"] - desi_galaxies["MAG_Z"],
+    bins=bins_color_histograms,
+    color=blue,
+    alpha=ALPHA,
+    density=True,
+    histtype="stepfilled",
+    label="DESI LS",
+)
+
+axs[1].set_xlim([0, 2])
+axs[1].set_xlabel("r - z")
+axs[1].grid()
+
+fig.supylabel("PDF")
+
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/colors_hist_simulated.pdf")
+
+plt.show()
+
+exit() # TODO
 
 ####################
 # Plot redshift distribution of reds and blues for each r-magnitude bin
@@ -181,102 +286,3 @@ fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/SHAM_absmag_d
 
 plt.show()
 
-"""
-####################
-# TODO create sbatch script, since it requires lots of memory
-# TODO also compare redshift distributions for different r bins,
-# TODO which will require computing apparent magnitudes (probably within the sample.py code)
-# Load UCat sampled galaxies, and plot absolute magnitudes for reds and blues,
-# to verify that distribution is similar to the one obtained by SHAM
-UCAT_OUTPUT_PATH = directories.outputs_sampling_path(
-    particle_count=PARTICLE_COUNT_PINOCCHIO,
-    z_depth=Z_DEPTH,
-    pinocchio_region=PINOCCHIO_REGION,
-    DESI_region=DESI_region,
-)
-
-ucat_output = {}
-
-ucat_output["abs_mag"] = np.load(f"{UCAT_OUTPUT_PATH}/sampled_absmag.npy")
-ucat_output["blue_red"] = np.load(f"{UCAT_OUTPUT_PATH}/sampled_redblue.npy")
-ucat_output["redshift"] = np.load(f"{UCAT_OUTPUT_PATH}/sampled_z.npy")
-
-# Separate red and blue galaxies
-blue_mask = ucat_output["blue_red"] == BLUE
-red_mask = ucat_output["blue_red"] == RED
-blue_ucat_output = {k: v[blue_mask] for k, v in ucat_output.items()}
-red_ucat_output = {k: v[red_mask] for k, v in ucat_output.items()}
-
-fig, ax = plt.subplots(1, 1)
-
-for g, color in (
-        (blue_ucat_output, "blue"),
-        (red_ucat_output, "red"),
-    ):
-
-    ax.hist(
-        g["abs_mag"],
-        label=f"{color.capitalize()}",
-        color=color,
-        bins=40,
-        histtype="step",
-        density=True,
-        lw=2,
-        ls=LINESTYLES[color],
-    )
-
-ax.set_xlabel("Absolute Magnitude")
-ax.set_ylabel("PDF")
-
-ax.set_title("UCat: Blue vs. Red galaxies, absolute magnitude distribution")
-
-ax.legend()
-
-ax.grid()
-
-fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/UCAT_absmag_distributions_{DESI_region}.png")
-
-plt.show()
-"""
-
-####################
-# Plot g - r and r - z color histograms
-# g - r
-fig, ax = plt.subplots(1, 1)
-ax.hist(
-    galaxies["mag_g"] - galaxies["mag_r"],
-    color=teal,
-    density=True,
-    bins=50,
-)
-
-#plt.xlim([14, 22])
-
-ax.set_title("SHAM g - r colors, BASS-MzLS filters")
-ax.set_xlabel("g - r")
-ax.set_ylabel("PDF")
-
-ax.grid()
-fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/gminusr_hist_simulated.pdf")
-
-plt.show()
-
-# r - z
-fig, ax = plt.subplots(1, 1)
-ax.hist(
-    galaxies["mag_r"] - galaxies["mag_z"],
-    color=teal,
-    density=True,
-    bins=50,
-)
-
-#plt.xlim([14, 22])
-
-ax.set_title("SHAM r - z colors, BASS-MzLS filters")
-ax.set_xlabel("r - z")
-ax.set_ylabel("PDF")
-
-ax.grid()
-fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/rminusz_hist_simulated.pdf")
-
-plt.show()

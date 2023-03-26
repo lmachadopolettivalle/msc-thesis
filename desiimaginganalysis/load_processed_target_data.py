@@ -1,8 +1,12 @@
 # Read file with data from selected targets
 import numpy as np
 from desitarget.targets import bgs_mask
-from mask import mask
-from constants import *
+try:
+    from mask import mask
+    from constants import *
+except ModuleNotFoundError:
+    from desiimaginganalysis.mask import mask
+    from desiimaginganalysis.constants import *
 
 # Parameters for magnitude computation
 CLIP_FLUX = 1e-16

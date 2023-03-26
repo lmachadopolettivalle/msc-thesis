@@ -13,14 +13,21 @@ from load_sham_galaxies import load_sham_galaxies
 
 from sham_model_constants import BLUE, RED
 
+# Colors
+blue = "#004488"
+yellow = "#ddaa33"
+red = "#bb5566"
+
 # NOTE: very careful when loading both coordinates (x, y, z)
 # and bands (g, r, z), since there is an overlap of names (z).
 # Make sure to name them differently, e.g. mag_z and z_coord.
 BANDS = ["mag_g", "mag_r", "mag_z"]
 
 # Parameters for plotting
-plt.rcParams["font.size"] = "12"
-plt.rcParams["figure.figsize"] = (8, 6)
+plt.rcParams["figure.figsize"] = (12, 9)
+plt.rcParams["font.size"] = "14"
+plt.rcParams["savefig.pad_inches"] = 0.05
+plt.rcParams["savefig.bbox"] = "tight"
 
 # DESI Region to be loaded
 DESI_region = directories.DECaLS_NGC
@@ -68,7 +75,7 @@ blue_redshift_filtering_config = {
     "mask": blue_mask & redshift_filtering,
     "colorbar_label": "Absolute Magnitude",
     "colorbar_field": galaxies["abs_mag"],
-    "colormap": "YlOrRd_r",
+    "colormap": "cividis_r",
     "colorbar_vmin": -23,
     "colorbar_vmax": -19,
     "size_field": redshift_filtering_size,
@@ -79,7 +86,7 @@ red_redshift_filtering_config = {
     "mask": red_mask & redshift_filtering,
     "colorbar_label": "Absolute Magnitude",
     "colorbar_field": galaxies["abs_mag"],
-    "colormap": "YlOrRd_r",
+    "colormap": "cividis_r",
     "colorbar_vmin": -23,
     "colorbar_vmax": -19,
     "size_field": redshift_filtering_size,
@@ -87,6 +94,7 @@ red_redshift_filtering_config = {
     "galaxy_color": "red",
 }
 
+"""
 ####################
 # Filtering 2 ("App Mag Filtering"):
 # - No cut in redshift
@@ -109,24 +117,27 @@ app_mag_filtering_config = {
     "title": f"All galaxies, r < {RMAG_MAX:.1f}, {DESI_region} region",
     "galaxy_color": "all",
 }
+"""
 
 ####################
 # For each filtering, create following plots:
 # - Scatter Plot
 # - Gaussian KDE
-for filtering_config in [
-        blue_redshift_filtering_config,
-        red_redshift_filtering_config,
-        app_mag_filtering_config,
-    ]:
+fig, axs = plt.subplots(nrows=1, ncols=2, sharey=True)
+fig.subplots_adjust(wspace=0.15)
+for filtering_config, ax in zip(
+        [
+            blue_redshift_filtering_config,
+            red_redshift_filtering_config,
+        ],
+        axs
+    ):
     # Filter galaxies
     filtered_galaxies = {}
     for k, v in galaxies.items():
         filtered_galaxies[k] = v[filtering_config["mask"]]
 
     print("Number of objects:", len(filtered_galaxies["mag_r"]))
-
-    fig, ax = plt.subplots(1, 1)
 
     scatter = ax.scatter(
         filtered_galaxies["RA"],
@@ -138,25 +149,60 @@ for filtering_config in [
         cmap=filtering_config["colormap"],
     )
 
-    fig.colorbar(scatter, label=filtering_config["colorbar_label"])
+    ax.text(
+        151.1,
+        2.1,
+        f"{filtering_config['galaxy_color'].capitalize()} galaxies",
+        color=(blue if filtering_config["galaxy_color"] == "blue" else red),
+        bbox=dict(facecolor="none", edgecolor="black", pad=6),
+        ha="center",
+        va="center",
+    )
 
     ax.set_xlabel("RA (degrees)")
-    ax.set_ylabel("Dec (degrees)")
-    ax.set_title(filtering_config["title"])
+    #ax.set_title(filtering_config["title"])
 
     ax.set_xlim([RA_MIN, RA_MAX])
     ax.set_ylim([DEC_MIN, DEC_MAX])
 
     ax.set_aspect("equal")
 
-    plt.tight_layout()
+cbar = fig.colorbar(
+    scatter,
+    label=filtering_config["colorbar_label"],
+    ax=axs,
+    shrink=0.7,
+    fraction=0.046,
+    pad=0.04,
+)
+cbar.ax.invert_yaxis()
 
-    fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/Scatter_{DESI_region}_{RMAG_MAX}_{filtering_config['galaxy_color']}.pdf")
+axs[0].set_ylabel("Dec (degrees)")
 
-    plt.show()
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/Scatter_{DESI_region}.pdf")
 
-    ####################
-    # Plot Gaussian KDE
+plt.show()
+
+
+####################
+# Plot Gaussian KDE
+fig, axs = plt.subplots(nrows=1, ncols=2, sharey=True)
+fig.subplots_adjust(wspace=0.15)
+for filtering_config, ax in zip(
+        [
+            blue_redshift_filtering_config,
+            red_redshift_filtering_config,
+        ],
+        axs
+    ):
+
+    # Filter galaxies
+    filtered_galaxies = {}
+    for k, v in galaxies.items():
+        filtered_galaxies[k] = v[filtering_config["mask"]]
+
+    print("Number of objects:", len(filtered_galaxies["mag_r"]))
+
     X, Y = np.mgrid[RA_MIN:RA_MAX:128j, DEC_MIN:DEC_MAX:128j]
 
     positions = np.vstack([X.ravel(), Y.ravel()])
@@ -173,8 +219,6 @@ for filtering_config in [
 
     Z = np.reshape(kernel(positions).T, X.shape)
 
-    fig, ax = plt.subplots(1, 1)
-
     cax = ax.imshow(
         np.rot90(Z),
         cmap="jet",
@@ -183,19 +227,24 @@ for filtering_config in [
         vmax=0.6,
     )
 
-    fig.colorbar(cax, label=r"PDF ($deg^{-2}$)")
-
     ax.set_xlim([RA_MIN, RA_MAX])
     ax.set_ylim([DEC_MIN, DEC_MAX])
 
     ax.set_xlabel("RA (degrees)")
-    ax.set_ylabel("Dec (degrees)")
-    ax.set_title(filtering_config["title"])
+    #ax.set_title(filtering_config["title"])
 
     ax.set_aspect("equal")
 
-    plt.tight_layout()
+axs[0].set_ylabel("Dec (degrees)")
+fig.colorbar(
+    cax,
+    label=r"PDF ($deg^{-2}$)",
+    ax=axs,
+    shrink=0.7,
+    fraction=0.046,
+    pad=0.04,
+)
 
-    fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/GaussianKDE_{DESI_region}_{RMAG_MAX}_{filtering_config['galaxy_color']}.pdf")
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/GaussianKDE_{DESI_region}.pdf")
 
-    plt.show()
+plt.show()

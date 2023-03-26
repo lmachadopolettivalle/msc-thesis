@@ -18,8 +18,10 @@ from load_sham_galaxies import load_sham_galaxies
 
 from sham_model_constants import BLUE, RED
 
-plt.rcParams["font.size"] = "14"
+plt.rcParams["font.size"] = "20"
 plt.rcParams["figure.figsize"] = (18, 14)
+plt.rcParams["savefig.pad_inches"] = 0.1
+plt.rcParams["savefig.bbox"] = "tight"
 
 DESI_region = directories.DECaLS_NGC
 
@@ -139,7 +141,7 @@ for config in [
     ax.set_thetamax(END)
     ax.set_rmax(0.3)
 
-    ax.set_title(config["title"])
+    #ax.set_title(config["title"])
     ax.text(
         np.radians(90),
         0.15,
