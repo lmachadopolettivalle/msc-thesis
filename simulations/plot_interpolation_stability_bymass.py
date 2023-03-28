@@ -3,6 +3,7 @@
 # for several different redshifts.
 # Make two plots, one for blue and one for red galaxies.
 
+from cycler import cycler
 from matplotlib import pyplot as plt
 import numpy as np
 import re
@@ -13,21 +14,52 @@ import directories
 
 from manage_parameter_space import get_details_of_run
 
-plt.rcParams["font.size"] = "12"
+Z_DEPTH = 1.5 # TODO
+
+# Colors
+blue = "#004488"
+yellow = "#ddaa33"
+red = "#bb5566"
+
+color_cycler = cycler(color=[
+    "#E8601C",
+    "#F6C141",
+    "#90C987",
+    "#5289C7",
+    "#AE76A3",
+])
+
+plt.rcParams["font.size"] = "16"
+plt.rcParams["figure.figsize"] = (12, 7)
+plt.rcParams["savefig.pad_inches"] = 0.05
+plt.rcParams["savefig.bbox"] = "tight"
 
 pinocchio_particle_count = 2048
-Z_DEPTH = 0.5
-PINOCCHIO_REGION = "fullsky"
+PINOCCHIO_REGION = "north" # TODO
 
 DESI_region = directories.BASS_MzLS
 
 # Loop through desired run IDs
-DESIRED_RUN_IDS = [146]
+DESIRED_RUN_IDS = [156, 143]
+DESIRED_RUN_IDS = [144, 145]
+
+# Convert from absolute magnitude to luminosity
+def mag_to_luminosity(mag):
+    SUN_ABS_MAG = 4.83
+    return np.power(10, 0.4 * (SUN_ABS_MAG - mag))
+
+def create_callback(lum_ax):
+    def convert_mag_axis_to_luminosity_axis(mag_ax):
+        y1, y2 = mag_ax.get_ylim()
+        lum_ax.set_ylim(mag_to_luminosity(y1), mag_to_luminosity(y2))
+        lum_ax.figure.canvas.draw()
+
+    return convert_mag_axis_to_luminosity_axis
 
 for run_id in tqdm(DESIRED_RUN_IDS):
     # File with output of SHAM run.
     # Used to determine effective mass limit used in SHAM
-    sham_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/sham_int_job_{pinocchio_particle_count}_{run_id}_output"
+    sham_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/sham_int_job_{'deep_' if Z_DEPTH > 1 else ''}{pinocchio_particle_count}_{run_id}_{DESI_region}_output"
 
     # Directory containing output data from SHAM
     infile_dir = directories.path_interpolation(
@@ -103,10 +135,24 @@ for run_id in tqdm(DESIRED_RUN_IDS):
 
     # Choose input values for mass and redshift
     input_masses = np.log10([1e12, 1e13, 1e14])
-    input_redshifts = np.linspace(0.05, 0.5, num=30)
+    if Z_DEPTH > 1:
+        input_masses = np.log10([5e11, 1e12, 5e12])
+    
+    input_redshifts = np.linspace(0.05, Z_DEPTH, num=int(60*Z_DEPTH))
 
-    fig_blue, ax_blue = plt.subplots(1, 1, figsize=(8, 6))
-    fig_red, ax_red = plt.subplots(1, 1, figsize=(8, 6))
+    fig, (mag_ax_blue, mag_ax_red) = plt.subplots(nrows=1, ncols=2, sharey=True)
+    fig.subplots_adjust(wspace=0.05)
+    mag_ax_blue.set_prop_cycle(color_cycler)
+    mag_ax_red.set_prop_cycle(color_cycler)
+    lum_ax_blue = mag_ax_blue.twinx()
+    lum_ax_red = mag_ax_red.twinx()
+
+    # automatically update ylim of ax2 when ylim of ax1 changes.
+    mag_ax_blue.callbacks.connect("ylim_changed", create_callback(lum_ax_blue))
+    mag_ax_red.callbacks.connect("ylim_changed", create_callback(lum_ax_red))
+
+    lum_ax_blue.set_yscale("log")
+    lum_ax_red.set_yscale("log")
 
     # Interpolate for each redshift
     for mass in input_masses:
@@ -121,43 +167,56 @@ for run_id in tqdm(DESIRED_RUN_IDS):
             (input_redshifts, mass),
         )
 
-        ax_blue.plot(
+        mag_ax_blue.plot(
             input_redshifts,
             blue_absmags,
             label=f"mass = {10**mass:.1e}",
             linewidth=2,
         )
-        ax_red.plot(
+        mag_ax_red.plot(
             input_redshifts,
             red_absmags,
             label=f"mass = {10**mass:.1e}",
             linewidth=2,
         )
 
-    ax_blue.set_title(f"Blue, mass cut = {M_limit_effective:.1e}\nMass bins: {num_mass_bins}, z bins: {num_z_bins}")
-    ax_red.set_title(f"Red, mass cut = {M_limit_effective:.1e}\nMass bins: {num_mass_bins}, z bins: {num_z_bins}")
-
-    for ax in {ax_blue, ax_red}:
-        ax.set_xlabel("Redshift")
-        ax.set_ylabel("Galaxy's Absolute Magnitude")
-
+    for color, ax in zip(["blue", "red"], [mag_ax_blue, mag_ax_red]):
         ax.invert_yaxis()
-
-        #ax.set_xscale("log")
 
         ax.set_ylim([-18, -24])
 
-        ax.legend(loc="lower right")
+        ax.text(
+            0.2 if Z_DEPTH < 1 else 0.5,
+            -23.5,
+            f"{color.capitalize()} Galaxies\n$m_{{bins}}$ = {num_mass_bins}, $z_{{bins}}$ = {num_z_bins}",
+            color=(blue if color == "blue" else red),
+            bbox=dict(facecolor="none", edgecolor="black", pad=6),
+            ha="center",
+            va="center",
+        )
 
         ax.grid()
 
-    fig_blue.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/blue_interpolation_bymass_{pinocchio_particle_count}_{run_id}.pdf")
-    fig_red.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/red_interpolation_bymass_{pinocchio_particle_count}_{run_id}.pdf")
+    fig.supxlabel("Halo/Subhalo Redshift")
+    mag_ax_blue.set_ylabel("Galaxy Absolute Magnitude")
 
-    #plt.show()
+    lum_ax_red.set_ylabel("Galaxy Luminosity ($L_{\odot}$)")
+
+    mag_ax_blue.legend(loc="lower right")
+    lum_ax_blue.yaxis.set_ticks_position("none") 
+    lum_ax_blue.tick_params(
+        axis="y",          # changes apply to the x-axis
+        which="both",      # both major and minor ticks are affected
+        left=False,      # ticks along the left edge are off
+        right=False,         # ticks along the right edge are off
+        labelright=False,
+    )
+
+    fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/interpolation_bymass_{pinocchio_particle_count}_{run_id}{'_deep' if Z_DEPTH > 1 else ''}.pdf")
+
+    plt.show()
 
     # Close figures to reduce memory usage,
     # since pyplot keeps figures in memory until
     # the end of the program by default
-    plt.close(fig_blue)
-    plt.close(fig_red)
+    plt.close(fig)

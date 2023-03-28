@@ -9,7 +9,7 @@ from manage_parameter_space import get_details_of_run
 # Only applies to BASS_MzLS objects
 USE_MAG_R = True
 
-DESI_REGION = directories.FULLSKY
+DESI_REGION = directories.BASS_MzLS
 
 if DESI_REGION == directories.FULLSKY:
     EQUIVALENT_DESI_REGION = (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS_SGC)
@@ -36,7 +36,7 @@ Z_DEPTH = 0.5
 PINOCCHIO_REGION = "fullsky"
 
 # Select run_id for 2PCF visualization
-run_id = 151
+run_id = 143
 run_details = get_details_of_run(run_id)
 # Optionally, set a second run_id for a comparison between the two runs
 # If not wanted, set the baseline_run_id to None
@@ -53,8 +53,10 @@ PATH_DESI_LS_2PCF = "/cluster/scratch/lmachado/DataProducts/2PCF/"
 
 
 # Parameters for plotting
-plt.rcParams["font.size"] = "12"
-plt.rcParams["figure.figsize"] = (8, 6)
+plt.rcParams["font.size"] = "16"
+plt.rcParams["figure.figsize"] = (8, 9)
+plt.rcParams["savefig.pad_inches"] = 0.05
+plt.rcParams["savefig.bbox"] = "tight"
 LINEWIDTH = 2
 
 rmag_bins = [
@@ -68,17 +70,19 @@ rmag_bins = [
 
 COLORS = {
     #14: "C0",
-    15: "C0",
-    16: "C1",
-    17: "C2",
-    18: "C3",
-    19: "C4",
+    19: "#AE76A3",
+    18: "#5289C7",
+    17: "#90C987",
+    16: "#F6C141",
+    15: "#E8601C",
 }
 
 
 # First plot: compare SHAM 2PCF (all galaxies) vs. DESI LS 2PCF (all galaxies)
 # This plot does NOT include any blue vs. red separation
-fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True, figsize=(12, 4.8), gridspec_kw={"height_ratios": [2, 1]})
+fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": [2, 1]})
+
+plotted_lines = []
 
 for rmag_low, rmag_high in rmag_bins:
     sham_bins_filename = f"simulated_total_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
@@ -97,16 +101,15 @@ for rmag_low, rmag_high in rmag_bins:
     with open(f"{PATH_DESI_LS_2PCF}/{desi_wtheta_filename}", "rb") as f:
         desi_wtheta = np.load(f)
 
-    ax_top.plot(
+    desi_line, = ax_top.plot(
         desi_bins,
         desi_wtheta,
         linewidth=LINEWIDTH,
         linestyle="solid",
         color=COLORS[int(rmag_low)],
-        label=f"{rmag_low:.1f} < r < {rmag_high:.1f}",
     )
 
-    ax_top.plot(
+    sham_line, = ax_top.plot(
         sham_bins,
         sham_wtheta,
         linewidth=LINEWIDTH,
@@ -114,21 +117,35 @@ for rmag_low, rmag_high in rmag_bins:
         color=COLORS[int(rmag_low)],
     )
 
+    plotted_lines.append([desi_line, sham_line])
+
     ax_bottom.plot(
         desi_bins,
-        sham_wtheta / desi_wtheta,
+        sham_wtheta / desi_wtheta - 1,
         linewidth=LINEWIDTH,
         linestyle="solid",
         color=COLORS[int(rmag_low)],
     )
     ax_bottom.plot(
         desi_bins,
-        [1] * len(desi_bins),
+        [0] * len(desi_bins),
         linewidth=LINEWIDTH,
         color="black",
     )
 
-ax_top.legend()
+rmags_legend = ax_top.legend(
+    [i[0] for i in plotted_lines],
+    [f"{rmag_low:.1f} < r < {rmag_high:.1f}" for (rmag_low, rmag_high) in rmag_bins],
+    loc="upper right",
+)
+
+_ = ax_top.legend(
+    plotted_lines[0],
+    ["DESI LS", "SHAM"],
+    loc="lower left",
+)
+
+ax_top.add_artist(rmags_legend)
 
 ax_top.set_xscale("log")
 ax_top.set_yscale("log")
@@ -136,91 +153,26 @@ ax_bottom.set_xscale("log")
 
 ax_top.set_ylabel(r"$w(\theta)$")
 ax_bottom.set_xlabel(r"$\theta$ [deg]")
-ax_bottom.set_ylabel("Ratio")
+ax_bottom.set_ylabel("Fractional Difference")
 
-ax_top.set_xlim([1e-2, 5])
+ax_top.set_xlim([1e-2, 20])
 ax_top.set_ylim([1e-4, 10])
-ax_bottom.set_ylim([0, 1.5])
+ax_bottom.set_ylim([-1, 1])
 
 ax_top.grid()
 ax_bottom.grid()
 
 plt.subplots_adjust(hspace=0.1)
 
-fig.suptitle(f"DESI LS (-) vs. SHAM (--)\n{DESI_REGION}")
+#fig.suptitle(f"DESI LS (-) vs. SHAM (--)\n{DESI_REGION}")
 
 fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_compareSHAMvsDESI_{PARTICLE_COUNT_PINOCCHIO}_{run_id}.pdf")
 
 plt.show()
 
-exit() # TODO
 
 # --------------------
-# Second plot: compare SHAM 2PCF total vs. red vs. blue galaxies
-LINESTYLES = {
-    "total": "solid",
-    "blue": "dashed",
-    "red": "dotted",
-}
-
-for rmag_low, rmag_high in rmag_bins:
-    for color_name, linestyle in LINESTYLES.items():
-        sham_bins_filename = f"simulated_{color_name}_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
-        sham_wtheta_filename = f"simulated_{color_name}_2PCF_{'rprimed_' if USE_MAG_R else ''}{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
-
-        try:
-            with open(f"{PATH_SHAM_2PCF}/{sham_bins_filename}", "rb") as f:
-                sham_bins = np.load(f)
-            with open(f"{PATH_SHAM_2PCF}/{sham_wtheta_filename}", "rb") as f:
-                sham_wtheta = np.load(f)
-        except FileNotFoundError as e:
-            print(e)
-            print(f"Skipping color_name {color_name}...")
-            break
-
-        # Due to 1-halo term issue,
-        # only plot BLUE 2PCF
-        # above a certain theta
-        """
-        if color_name == "blue":
-            theta_cut = 0.1
-            ids = np.where(sham_bins >= theta_cut)[0]
-            sham_bins = sham_bins[ids]
-            sham_wtheta = sham_wtheta[ids]
-        """
-
-        # Only use label for total,
-        # so we don't repeat labels
-        label = None
-        if color_name == "total":
-            label = f"{rmag_low:.1f} < r < {rmag_high:.1f}"
-
-        plt.plot(
-            sham_bins,
-            sham_wtheta,
-            linewidth=LINEWIDTH,
-            linestyle=linestyle,
-            color=COLORS[int(rmag_low)],
-            label=label,
-        )
-
-plt.legend(loc="upper right")
-plt.xscale("log")
-plt.yscale("log")
-plt.xlabel(r"$\theta$ [deg]")
-plt.ylabel(r"$w(\theta)$")
-plt.title(f"SHAM Comparison: all (-) vs. blue (--) vs. red (...)\n{DESI_REGION}")
-plt.xlim([1e-2, 5])
-plt.ylim([1e-4, 10])
-plt.grid()
-
-plt.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_SHAMRedvsBlue_{PARTICLE_COUNT_PINOCCHIO}_{run_id}.pdf")
-
-plt.show()
-
-
-# --------------------
-# Third plot: compare SHAM for each of the four regions (BASS-MzLS, DECaLS-NGC, DECaLS-SGC)
+# Second plot: compare SHAM for each of the four regions (BASS-MzLS, DECaLS-NGC, DECaLS-SGC)
 # This plot does NOT include any blue vs. red separation
 fig, ax = plt.subplots(1, 1, figsize=(10, 8))
 
@@ -298,7 +250,7 @@ fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_compare_
 plt.show()
 
 # --------------------
-# Fourth plot: Compare r-primed and r 2PCF for BASS
+# Third plot: Compare r-primed and r 2PCF for BASS
 # This plot does NOT include any blue vs. red separation
 fig, ax = plt.subplots(1, 1)
 
@@ -336,7 +288,7 @@ ax.set_yscale("log")
 ax.set_xlabel(r"$\theta$ [deg]")
 ax.set_ylabel(r"$w(\theta)$")
 
-ax.set_xlim([1e-2, 5])
+ax.set_xlim([1e-2, 20])
 ax.set_ylim([1e-4, 10])
 
 ax.grid()
@@ -348,7 +300,7 @@ fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_compare_
 plt.show()
 
 # --------------------
-# Fifth plot: Compare 2PCF between two run IDs
+# Fourth plot: Compare 2PCF between two run IDs
 if baseline_run_id is None:
     print("Baseline run ID has not been set. Exiting program.")
     exit()
@@ -365,6 +317,8 @@ PATH_BASELINE_SHAM_2PCF = directories.path_2PCF(
 
 fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": [2, 1]})
 
+plotted_lines = []
+
 for rmag_low, rmag_high in rmag_bins:
     sham_bins_filename = f"simulated_total_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_bins.npy"
     sham_wtheta_filename = f"simulated_total_2PCF_{rmag_low:.1f}_{rmag_high:.1f}_wtheta.npy"
@@ -379,16 +333,16 @@ for rmag_low, rmag_high in rmag_bins:
     with open(f"{PATH_BASELINE_SHAM_2PCF}/{sham_wtheta_filename}", "rb") as f:
         baseline_wtheta = np.load(f)
 
-    ax_top.plot(
+    first_line, = ax_top.plot(
         bins,
         wtheta,
         linewidth=LINEWIDTH,
         linestyle="solid",
         color=COLORS[int(rmag_low)],
-        label=f"{rmag_low:.1f} < r < {rmag_high:.1f}",
+        #label=f"{rmag_low:.1f} < r < {rmag_high:.1f}",
     )
 
-    ax_top.plot(
+    baseline_line, = ax_top.plot(
         baseline_bins,
         baseline_wtheta,
         linewidth=LINEWIDTH,
@@ -396,21 +350,38 @@ for rmag_low, rmag_high in rmag_bins:
         color=COLORS[int(rmag_low)],
     )
 
+    plotted_lines.append([first_line, baseline_line])
+
     ax_bottom.plot(
         bins,
-        wtheta / baseline_wtheta,
+        wtheta / baseline_wtheta - 1,
         linewidth=LINEWIDTH,
         linestyle="solid",
         color=COLORS[int(rmag_low)],
     )
     ax_bottom.plot(
         bins,
-        [1] * len(bins),
+        [0] * len(bins),
         linewidth=LINEWIDTH,
         color="black",
     )
 
-ax_top.legend()
+rmags_legend = ax_top.legend(
+    [i[0] for i in plotted_lines],
+    [f"{rmag_low:.1f} < r < {rmag_high:.1f}" for (rmag_low, rmag_high) in rmag_bins],
+    loc="upper right",
+)
+
+_ = ax_top.legend(
+    plotted_lines[0],
+    [
+        f"$m_{{bins}}$ = {run_details['num_mass_bins']}, $z_{{bins}}$ = {run_details['num_z_bins']}",
+        f"$m_{{bins}}$ = {baseline_run_details['num_mass_bins']}, $z_{{bins}}$ = {baseline_run_details['num_z_bins']}",
+    ],
+    loc="lower left",
+)
+
+ax_top.add_artist(rmags_legend)
 
 ax_top.set_xscale("log")
 ax_top.set_yscale("log")
@@ -418,17 +389,23 @@ ax_bottom.set_xscale("log")
 
 ax_top.set_ylabel(r"$w(\theta)$")
 ax_bottom.set_xlabel(r"$\theta$ [deg]")
-ax_bottom.set_ylabel("Ratio")
+ax_bottom.set_ylabel("Fractional Difference")
 
-ax_top.set_xlim([1e-2, 5])
-ax_top.set_ylim([1e-4, 10])
+ax_top.set_xlim([0.1, 1])
+ax_top.set_ylim([1e-3, 10])
+ax_bottom.set_ylim([-0.2, 0.2])
+
+ax_bottom.set_xticks(
+    [0.1, 0.2, 0.3, 0.4, 0.6, 1],
+    ["0.1", "0.2", "0.3", "0.4", "0.6", "1.0"],
+)
 
 ax_top.grid()
 ax_bottom.grid()
 
 plt.subplots_adjust(hspace=0.1)
 
-fig.suptitle(f"Solid: m_bins = {run_details['num_mass_bins']}, z_bins = {run_details['num_z_bins']}\nDashed: m_bins = {baseline_run_details['num_mass_bins']}, z_bins = {baseline_run_details['num_z_bins']}")
+#fig.suptitle(f"Solid: m_bins = {run_details['num_mass_bins']}, z_bins = {run_details['num_z_bins']}\nDashed: m_bins = {baseline_run_details['num_mass_bins']}, z_bins = {baseline_run_details['num_z_bins']}")
 
 fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_compareRUNS_{PARTICLE_COUNT_PINOCCHIO}_{run_id}_{baseline_run_id}.pdf")
 
