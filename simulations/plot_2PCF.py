@@ -5,11 +5,15 @@ import directories
 
 from manage_parameter_space import get_details_of_run
 
+DESI_REGION = directories.FULLSKY
+
+# Whether to show narrow or wide theta range in 2PCF comparison
+NARROW_THETA_RANGE = True
+
 # Whether to use r-primed
 # Only applies to BASS_MzLS objects
 USE_MAG_R = True
 
-DESI_REGION = directories.BASS_MzLS
 
 if DESI_REGION == directories.FULLSKY:
     EQUIVALENT_DESI_REGION = (directories.BASS_MzLS, directories.DECaLS_NGC, directories.DECaLS_SGC)
@@ -36,7 +40,7 @@ Z_DEPTH = 0.5
 PINOCCHIO_REGION = "fullsky"
 
 # Select run_id for 2PCF visualization
-run_id = 143
+run_id = 154
 run_details = get_details_of_run(run_id)
 # Optionally, set a second run_id for a comparison between the two runs
 # If not wanted, set the baseline_run_id to None
@@ -70,14 +74,23 @@ rmag_bins = [
 
 COLORS = {
     #14: "C0",
-    19: "#AE76A3",
-    18: "#5289C7",
-    17: "#90C987",
-    16: "#F6C141",
     15: "#E8601C",
+    16: "#F6C141",
+    17: "#90C987",
+    18: "#5289C7",
+    19: "#AE76A3",
 }
 
+# Angular scales of trust for each r band range
+SCALES_OF_TRUST = {
+    (15, 16): (0.22, 3),
+    (16, 17): (0.15, 3),
+    (17, 18): (0.1, 3),
+    (18, 19): (0.09, 3),
+    (19, 19.5): (0.08, 3),
+}
 
+# --------------------
 # First plot: compare SHAM 2PCF (all galaxies) vs. DESI LS 2PCF (all galaxies)
 # This plot does NOT include any blue vs. red separation
 fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": [2, 1]})
@@ -101,17 +114,23 @@ for rmag_low, rmag_high in rmag_bins:
     with open(f"{PATH_DESI_LS_2PCF}/{desi_wtheta_filename}", "rb") as f:
         desi_wtheta = np.load(f)
 
+    # If focusing on narrow theta range, filter SHAM plots to the scales of trust
+    if NARROW_THETA_RANGE:
+        trusted_indices = np.where((sham_bins >= SCALES_OF_TRUST[(rmag_low, rmag_high)][0]) & (sham_bins <= SCALES_OF_TRUST[(rmag_low, rmag_high)][1]))[0]
+    else:
+        trusted_indices = list(range(len(sham_bins)))
+
     desi_line, = ax_top.plot(
-        desi_bins,
-        desi_wtheta,
+        desi_bins[trusted_indices],
+        desi_wtheta[trusted_indices],
         linewidth=LINEWIDTH,
         linestyle="solid",
         color=COLORS[int(rmag_low)],
     )
 
     sham_line, = ax_top.plot(
-        sham_bins,
-        sham_wtheta,
+        sham_bins[trusted_indices],
+        sham_wtheta[trusted_indices],
         linewidth=LINEWIDTH,
         linestyle="dashed",
         color=COLORS[int(rmag_low)],
@@ -120,8 +139,8 @@ for rmag_low, rmag_high in rmag_bins:
     plotted_lines.append([desi_line, sham_line])
 
     ax_bottom.plot(
-        desi_bins,
-        sham_wtheta / desi_wtheta - 1,
+        desi_bins[trusted_indices],
+        sham_wtheta[trusted_indices] / desi_wtheta[trusted_indices] - 1,
         linewidth=LINEWIDTH,
         linestyle="solid",
         color=COLORS[int(rmag_low)],
@@ -133,10 +152,34 @@ for rmag_low, rmag_high in rmag_bins:
         color="black",
     )
 
+ax_top.set_xscale("log")
+ax_top.set_yscale("log")
+ax_bottom.set_xscale("log")
+
+ax_top.set_ylabel(r"$w(\theta)$")
+ax_bottom.set_xlabel(r"$\theta$ [deg]")
+ax_bottom.set_ylabel("Fractional Difference")
+
+
+if NARROW_THETA_RANGE:
+    ax_top.set_xlim([1e-1, 1])
+    ax_top.set_ylim([1e-3, 10])
+    ax_bottom.set_ylim([-0.2, 0.2])
+    rmags_legend_loc = "upper left"
+    ax_bottom.set_xticks(
+        [0.1, 0.2, 0.3, 0.4, 0.6, 1],
+        ["0.1", "0.2", "0.3", "0.4", "0.6", "1.0"],
+    )
+else:
+    ax_top.set_xlim([1e-2, 20])
+    ax_top.set_ylim([1e-4, 10])
+    ax_bottom.set_ylim([-1, 1])
+    rmags_legend_loc = "upper right"
+
 rmags_legend = ax_top.legend(
     [i[0] for i in plotted_lines],
     [f"{rmag_low:.1f} < r < {rmag_high:.1f}" for (rmag_low, rmag_high) in rmag_bins],
-    loc="upper right",
+    loc=rmags_legend_loc,
 )
 
 _ = ax_top.legend(
@@ -147,17 +190,6 @@ _ = ax_top.legend(
 
 ax_top.add_artist(rmags_legend)
 
-ax_top.set_xscale("log")
-ax_top.set_yscale("log")
-ax_bottom.set_xscale("log")
-
-ax_top.set_ylabel(r"$w(\theta)$")
-ax_bottom.set_xlabel(r"$\theta$ [deg]")
-ax_bottom.set_ylabel("Fractional Difference")
-
-ax_top.set_xlim([1e-2, 20])
-ax_top.set_ylim([1e-4, 10])
-ax_bottom.set_ylim([-1, 1])
 
 ax_top.grid()
 ax_bottom.grid()
@@ -166,10 +198,11 @@ plt.subplots_adjust(hspace=0.1)
 
 #fig.suptitle(f"DESI LS (-) vs. SHAM (--)\n{DESI_REGION}")
 
-fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_compareSHAMvsDESI_{PARTICLE_COUNT_PINOCCHIO}_{run_id}.pdf")
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_compareSHAMvsDESI_{PARTICLE_COUNT_PINOCCHIO}_{run_id}{'narrow' if NARROW_THETA_RANGE else ''}.pdf")
 
 plt.show()
 
+exit() # TODO
 
 # --------------------
 # Second plot: compare SHAM for each of the four regions (BASS-MzLS, DECaLS-NGC, DECaLS-SGC)
