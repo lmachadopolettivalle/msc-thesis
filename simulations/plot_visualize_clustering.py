@@ -75,9 +75,9 @@ blue_redshift_filtering_config = {
     "mask": blue_mask & redshift_filtering,
     "colorbar_label": "Absolute Magnitude",
     "colorbar_field": galaxies["abs_mag"],
-    "colormap": "cividis_r",
-    "colorbar_vmin": -23,
-    "colorbar_vmax": -19,
+    "colormap": "viridis_r",
+    "colorbar_vmin": -22,
+    "colorbar_vmax": -20,
     "size_field": redshift_filtering_size,
     "title": f"Blue galaxies, {REDSHIFT_MIN:.2f} < z < {REDSHIFT_MAX:.2f}, {DESI_region}",
     "galaxy_color": "blue",
@@ -86,9 +86,9 @@ red_redshift_filtering_config = {
     "mask": red_mask & redshift_filtering,
     "colorbar_label": "Absolute Magnitude",
     "colorbar_field": galaxies["abs_mag"],
-    "colormap": "cividis_r",
-    "colorbar_vmin": -23,
-    "colorbar_vmax": -19,
+    "colormap": "viridis_r",
+    "colorbar_vmin": -22,
+    "colorbar_vmax": -20,
     "size_field": redshift_filtering_size,
     "title": f"Red galaxies, {REDSHIFT_MIN:.2f} < z < {REDSHIFT_MAX:.2f}, {DESI_region}",
     "galaxy_color": "red",
@@ -171,7 +171,7 @@ cbar = fig.colorbar(
     scatter,
     label=filtering_config["colorbar_label"],
     ax=axs,
-    shrink=0.7,
+    shrink=0.569,
     fraction=0.046,
     pad=0.04,
 )
@@ -236,13 +236,15 @@ for filtering_config, ax in zip(
     ax.set_aspect("equal")
 
 axs[0].set_ylabel("Dec (degrees)")
+
+
 fig.colorbar(
     cax,
     label=r"PDF ($deg^{-2}$)",
     ax=axs,
-    shrink=0.7,
-    fraction=0.046,
-    pad=0.04,
+    shrink=0.547,
+    fraction=0.066,
+    pad=0.06,
 )
 
 fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/GaussianKDE_{DESI_region}.pdf")
