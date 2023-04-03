@@ -23,11 +23,11 @@ SCALES_OF_TRUST = {
 }
 
 color_cycler = cycler(color=[
-    "#E8601C",
-    "#F6C141",
-    "#90C987",
-    "#5289C7",
-    "#AE76A3",
+    "#1965B0",
+    "#F1932D",
+    "#4EB265",
+    "#DC050C",
+    "#AA6F9E",
 ])
 
 # Choose whether to fix mlimit or tquench. Plots will fix this variable, and vary the other one
@@ -35,7 +35,7 @@ color_cycler = cycler(color=[
 MLIMIT = "mass_cut"
 TQUENCH = "quenching_time"
 
-FIXED_PARAMETER = MLIMIT # Change between MLIMIT and TQUENCH to obtain different figures
+FIXED_PARAMETER = TQUENCH # Change between MLIMIT and TQUENCH to obtain different figures
 
 if FIXED_PARAMETER == MLIMIT:
     FIXED_VALUE = 8e12

@@ -5,10 +5,11 @@ import directories
 
 from manage_parameter_space import get_details_of_run
 
-DESI_REGION = directories.FULLSKY
+DESI_REGION = directories.FULLSKY # TODO
+PINOCCHIO_REGION = "fullsky" # TODO
 
 # Whether to show narrow or wide theta range in 2PCF comparison
-NARROW_THETA_RANGE = True
+NARROW_THETA_RANGE = True # TODO
 
 # Whether to use r-primed
 # Only applies to BASS_MzLS objects
@@ -37,7 +38,6 @@ REGION_MARKERS = {
 # This determines the path where the data is stored
 PARTICLE_COUNT_PINOCCHIO = 2048
 Z_DEPTH = 0.5
-PINOCCHIO_REGION = "fullsky"
 
 # Select run_id for 2PCF visualization
 run_id = 154
@@ -73,12 +73,11 @@ rmag_bins = [
 ]
 
 COLORS = {
-    #14: "C0",
-    15: "#E8601C",
-    16: "#F6C141",
-    17: "#90C987",
-    18: "#5289C7",
-    19: "#AE76A3",
+    15: "#1965B0", # blue brighter
+    16: "#F1932D", # orange
+    17: "#4EB265", # green brighter
+    18: "#DC050C", # red brighter
+    19: "#AA6F9E", # purple a bit brighter
 }
 
 # Angular scales of trust for each r band range
@@ -136,6 +135,15 @@ for rmag_low, rmag_high in rmag_bins:
         color=COLORS[int(rmag_low)],
     )
 
+    ax_top.text(
+        0.6,
+        5,
+        DESI_REGION,
+        bbox=dict(facecolor="none", edgecolor="black", pad=6),
+        ha="center",
+        va="center",
+    )
+
     plotted_lines.append([desi_line, sham_line])
 
     ax_bottom.plot(
@@ -146,8 +154,8 @@ for rmag_low, rmag_high in rmag_bins:
         color=COLORS[int(rmag_low)],
     )
     ax_bottom.plot(
-        desi_bins,
-        [0] * len(desi_bins),
+        [1e-3, 100],
+        [0, 0],
         linewidth=LINEWIDTH,
         color="black",
     )
@@ -158,7 +166,7 @@ ax_bottom.set_xscale("log")
 
 ax_top.set_ylabel(r"$w(\theta)$")
 ax_bottom.set_xlabel(r"$\theta$ [deg]")
-ax_bottom.set_ylabel("Fractional Difference")
+ax_bottom.set_ylabel(r"$w(\theta)_{SHAM}$ / $w(\theta)_{data} - 1$")
 
 
 if NARROW_THETA_RANGE:
@@ -201,7 +209,6 @@ plt.subplots_adjust(hspace=0.1)
 fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_compareSHAMvsDESI_{PARTICLE_COUNT_PINOCCHIO}_{run_id}{'narrow' if NARROW_THETA_RANGE else ''}.pdf")
 
 plt.show()
-
 exit() # TODO
 
 # --------------------
@@ -422,7 +429,7 @@ ax_bottom.set_xscale("log")
 
 ax_top.set_ylabel(r"$w(\theta)$")
 ax_bottom.set_xlabel(r"$\theta$ [deg]")
-ax_bottom.set_ylabel("Fractional Difference")
+ax_bottom.set_ylabel(r"$w(\theta)_{improved}$ / $w(\theta)_{baseline} - 1$")
 
 ax_top.set_xlim([0.1, 1])
 ax_top.set_ylim([1e-3, 10])

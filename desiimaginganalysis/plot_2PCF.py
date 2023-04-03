@@ -39,12 +39,11 @@ MARKERS = {
 }
 
 COLORS = {
-    #14: "C0",
-    19: "#AE76A3",
-    18: "#5289C7",
-    17: "#90C987",
-    16: "#F6C141",
-    15: "#E8601C",
+    15: "#1965B0", # blue brighter
+    16: "#F1932D", # orange
+    17: "#4EB265", # green brighter
+    18: "#DC050C", # red brighter
+    19: "#AA6F9E", # purple a bit brighter
 }
 
 RMAG_BINS = [
@@ -404,6 +403,12 @@ for ax, (rmag_low, rmag_high) in zip(axs, RMAG_BINS):
             #label=f"{rmag_low} < r < {rmag_high}, {region}"
         )
         tmp_plotted_lines.append(line)
+
+        ax.plot(
+            [1e-5, 100],
+            [0, 0],
+            c="black",
+        )
 
     plotted_lines.append(tmp_plotted_lines)
 

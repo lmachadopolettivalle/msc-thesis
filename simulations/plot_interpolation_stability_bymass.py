@@ -22,11 +22,11 @@ yellow = "#ddaa33"
 red = "#bb5566"
 
 color_cycler = cycler(color=[
-    "#E8601C",
-    "#F6C141",
-    "#90C987",
-    "#5289C7",
-    "#AE76A3",
+    "#1965B0",
+    "#F1932D",
+    "#4EB265",
+    "#DC050C",
+    "#AA6F9E",
 ])
 
 plt.rcParams["font.size"] = "16"
@@ -40,8 +40,8 @@ PINOCCHIO_REGION = "north" # TODO
 DESI_region = directories.BASS_MzLS
 
 # Loop through desired run IDs
-DESIRED_RUN_IDS = [156, 143]
-DESIRED_RUN_IDS = [144, 145]
+DESIRED_RUN_IDS = [156, 143] # TODO for fullsky, z = 0.5
+DESIRED_RUN_IDS = [144, 145] # TODO for north, z = 1.5
 
 # Convert from absolute magnitude to luminosity
 def mag_to_luminosity(mag):

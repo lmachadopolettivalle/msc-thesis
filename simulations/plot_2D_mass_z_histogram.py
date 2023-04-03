@@ -66,7 +66,7 @@ cbar = fig.colorbar(
     histogram,
     label="Absolute Magnitude",
     ax=axs,
-    shrink=1.1,
+    shrink=0.9,
     fraction=0.046,
     pad=0.04,
 )
