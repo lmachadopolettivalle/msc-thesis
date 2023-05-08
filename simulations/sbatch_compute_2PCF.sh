@@ -8,4 +8,5 @@
 #SBATCH -e /cluster/home/lmachado/msc-thesis/simulations/compute_2PCF_error
 #SBATCH --mail-type=FAIL
 
-/cluster/home/lmachado/venv/bin/python -u compute_2PCF.py --region "DECaLS-SGC" --run_id 154
+/cluster/home/lmachado/venv/bin/python -u compute_2PCF.py --region "fullsky" --run_id 162
+# 140, 157, 158, 159, 160, 161, 162
