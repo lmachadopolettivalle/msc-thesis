@@ -112,7 +112,7 @@ Results:
 
 Use `compute_2PCF.py` (with `Slurm`) to compute the angular correlation function of the selected targets, using the LS estimator.
 
-Then, use `plot_2PCF.py` to display the computed corelation function.
+Then, use `plot_2PCF.py` to display the computed correlation function.
 
 Prerequisites:
 - Run target selection

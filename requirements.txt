@@ -1,13 +1,32 @@
-Corrfunc
-fitsio
+# Common Requirements
 numpy
 scipy
+h5py
+matplotlib
+healpy
+
+# DESI LS Analysis
+Corrfunc
+fitsio
 tqdm
 astropy
 pyyaml
 requests
-h5py
 scikit-learn
-matplotlib
-healpy
 photutils
+halotools
+
+# PINOCCHIO
+
+# PyCosmo, UFig, UCat
+pandas
+psutil
+six
+dask
+recfast4py
+cython
+dill
+numba==0.49.1
+-e PyCosmo/
+-e ucat/
+-e ufig/

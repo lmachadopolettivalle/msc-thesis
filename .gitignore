@@ -1,5 +1,9 @@
 *.fits
+lsf.o*
+*.out
 *.pdf
+*.png
 *.npy
+*.npz
 *error*
 *output*
