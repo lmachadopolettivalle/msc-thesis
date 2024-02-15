@@ -241,6 +241,8 @@ for brightness, filedicts in TYPE_FILENAMES.items():
         ax.set_prop_cycle(None)
 
         for filename in filelist:
+            if "noextinction" in filename:
+                continue
             with open(f"{PATH_TO_2PCF_FILES}/{filename}", "rb") as f:
                 bins = np.load(f)
 
@@ -315,6 +317,8 @@ for brightness, filedicts in TYPE_FILENAMES.items():
         ax.set_prop_cycle(None)
 
         for filename in filelist:
+            if "noextinction" in filename:
+                continue
             with open(f"{PATH_TO_2PCF_FILES}/{filename}", "rb") as f:
                 bins = np.load(f)
 
@@ -440,6 +444,57 @@ axs[-1].set_xlabel(r"$\theta$ [deg]")
 axs[2].set_ylabel(r"$w(\theta)_{region}$ / $w(\theta)_{fullsky} - 1$")
 
 fig.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/2PCF_{BRIGHT}_ratios_to_fullsky.pdf")
+
+if SHOW:
+    plt.show()
+else:
+    plt.clf()
+
+
+
+
+
+# Plot only one rmag bin across 3 regions, ratio to fullsky
+fig, ax = plt.subplots(1, 1)
+rmag_low, rmag_high = 17, 18
+with open(f"{PATH_TO_2PCF_FILES}/{ALL_REGIONS}_2PCF_bins_{BRIGHT}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_unprimed.npy", "rb") as f:
+    fullsky_bins = np.load(f)
+with open(f"{PATH_TO_2PCF_FILES}/{ALL_REGIONS}_2PCF_wtheta_{BRIGHT}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_unprimed.npy", "rb") as f:
+    fullsky_wtheta = np.load(f)
+
+for region in (BASS_MzLS, DECaLS_NGC, DECaLS_SGC):
+    with open(f"{PATH_TO_2PCF_FILES}/{region}_2PCF_bins_{BRIGHT}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_unprimed.npy", "rb") as f:
+        region_bins = np.load(f)
+    with open(f"{PATH_TO_2PCF_FILES}/{region}_2PCF_wtheta_{BRIGHT}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_unprimed.npy", "rb") as f:
+        region_wtheta = np.load(f)
+
+    ax.plot(
+        bins,
+        region_wtheta / fullsky_wtheta - 1,
+        linewidth=LINEWIDTH,
+        label=f"{region}"
+    )
+
+    ax.plot(
+        [1e-5, 100],
+        [0, 0],
+        c="black",
+    )
+
+ax.set_xlim([1e-2, 20])
+ax.set_ylim([-0.2, 0.2])
+
+ax.set_xscale("log")
+
+ax.grid()
+
+ax.legend()
+
+ax.set_xlabel(r"$\theta$ [deg]")
+ax.set_ylabel(r"$w(\theta)_{region}$ / $w(\theta)_{fullsky} - 1$")
+ax.set_title(f"{rmag_low:.1f} < r < {rmag_high:.1f}")
+
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/desiimaginganalysis/images/2PCF_{BRIGHT}_ratios_to_fullsky_pascale.pdf")
 
 if SHOW:
     plt.show()

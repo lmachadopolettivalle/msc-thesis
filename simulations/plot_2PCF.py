@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
+from scipy import interpolate
 
 import directories
 
@@ -39,8 +40,10 @@ REGION_MARKERS = {
 PARTICLE_COUNT_PINOCCHIO = 2048
 Z_DEPTH = 0.5
 
+SEED = "111111"
+
 # Select run_id for 2PCF visualization
-run_id = 154
+run_id = 148
 run_details = get_details_of_run(run_id)
 # Optionally, set a second run_id for a comparison between the two runs
 # If not wanted, set the baseline_run_id to None
@@ -52,6 +55,7 @@ PATH_SHAM_2PCF = directories.path_2PCF(
     pinocchio_region=PINOCCHIO_REGION,
     DESI_region=DESI_REGION,
     run_id=run_id,
+    seed=SEED,
 )
 PATH_DESI_LS_2PCF = "/cluster/scratch/lmachado/DataProducts/2PCF/"
 
@@ -112,6 +116,10 @@ for rmag_low, rmag_high in rmag_bins:
         desi_bins = np.load(f)
     with open(f"{PATH_DESI_LS_2PCF}/{desi_wtheta_filename}", "rb") as f:
         desi_wtheta = np.load(f)
+
+    # Interpolate DESI LS data to match SHAM bins
+    desi_wtheta = interpolate.interp1d(desi_bins, desi_wtheta)(sham_bins)
+    desi_bins = sham_bins
 
     # If focusing on narrow theta range, filter SHAM plots to the scales of trust
     if NARROW_THETA_RANGE:
@@ -206,7 +214,7 @@ plt.subplots_adjust(hspace=0.1)
 
 #fig.suptitle(f"DESI LS (-) vs. SHAM (--)\n{DESI_REGION}")
 
-fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_compareSHAMvsDESI_{PARTICLE_COUNT_PINOCCHIO}_{run_id}{'narrow' if NARROW_THETA_RANGE else ''}.pdf")
+fig.savefig(f"/cluster/home/lmachado/msc-thesis/simulations/images/2PCF_{DESI_REGION}_compareSHAMvsDESI_{PARTICLE_COUNT_PINOCCHIO}_{run_id}{'narrow' if NARROW_THETA_RANGE else ''}{SEED if SEED is not None else ''}.pdf")
 
 plt.show()
 exit() # TODO

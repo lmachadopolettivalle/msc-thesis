@@ -17,6 +17,8 @@ parser.add_argument("--num_mass_bins", type=int, required=True)
 parser.add_argument("--mass_cut", type=float, required=True)
 parser.add_argument("--quenching_time", type=float, required=True)
 parser.add_argument("--particle_count_pinocchio", type=int, required=True)
+DEFAULT_SEED = "0"
+parser.add_argument("--seed", type=str, required=False, default=DEFAULT_SEED)
 
 args = parser.parse_args()
 
@@ -26,6 +28,7 @@ num_mass_bins = args.num_mass_bins
 mass_cut = args.mass_cut
 quenching_time = args.quenching_time
 particle_count_pinocchio = args.particle_count_pinocchio
+seed = args.seed
 
 # Save this run to the database, and then obtain its stored ID
 store_new_run(num_z_bins=num_z_bins, num_mass_bins=num_mass_bins, mass_cut=mass_cut, quenching_time=quenching_time)
@@ -36,10 +39,10 @@ run_id = get_id_of_run(num_z_bins=num_z_bins, num_mass_bins=num_mass_bins, mass_
 submit_message_2D = subprocess.run(
     [
         "sbatch",
-        f"--export=ALL,run_id={run_id},particle_count_pinocchio={particle_count_pinocchio},region={region}",
-        f"-J2D_hist_job_{particle_count_pinocchio}_{run_id}_{region}",
-        f"-o/cluster/home/lmachado/msc-thesis/simulations/2D_hist_{particle_count_pinocchio}_{run_id}_{region}_output",
-        f"-e/cluster/home/lmachado/msc-thesis/simulations/2D_hist_{particle_count_pinocchio}_{run_id}_{region}_error",
+        f"--export=ALL,run_id={run_id},particle_count_pinocchio={particle_count_pinocchio},region={region},seed={seed}",
+        f"-J2D_hist_job_{particle_count_pinocchio}_{run_id}_{region}{('_'+seed) if seed != DEFAULT_SEED else ''}",
+        f"-o/cluster/home/lmachado/msc-thesis/simulations/2D_hist_{particle_count_pinocchio}_{run_id}_{region}{('_'+seed) if seed != DEFAULT_SEED else ''}_output",
+        f"-e/cluster/home/lmachado/msc-thesis/simulations/2D_hist_{particle_count_pinocchio}_{run_id}_{region}{('_'+seed) if seed != DEFAULT_SEED else ''}_error",
         "sbatch_2D_hist.sh",
     ],
     capture_output=True,
@@ -54,10 +57,10 @@ submit_message_sham = subprocess.run(
     [
         "sbatch",
         f"--dependency=afterok:{job_id_2D}",
-        f"--export=ALL,run_id={run_id},particle_count_pinocchio={particle_count_pinocchio},region={region}",
-        f"-Jsham_int_job_{particle_count_pinocchio}_{run_id}_{region}",
-        f"-o/cluster/home/lmachado/msc-thesis/simulations/sham_int_job_{particle_count_pinocchio}_{run_id}_{region}_output",
-        f"-e/cluster/home/lmachado/msc-thesis/simulations/sham_int_job_{particle_count_pinocchio}_{run_id}_{region}_error",
+        f"--export=ALL,run_id={run_id},particle_count_pinocchio={particle_count_pinocchio},region={region},seed={seed}",
+        f"-Jsham_int_job_{particle_count_pinocchio}_{run_id}_{region}{('_'+seed) if seed != DEFAULT_SEED else ''}",
+        f"-o/cluster/home/lmachado/msc-thesis/simulations/sham_int_job_{particle_count_pinocchio}_{run_id}_{region}{('_'+seed) if seed != DEFAULT_SEED else ''}_output",
+        f"-e/cluster/home/lmachado/msc-thesis/simulations/sham_int_job_{particle_count_pinocchio}_{run_id}_{region}{('_'+seed) if seed != DEFAULT_SEED else ''}_error",
         "sbatch_sham_interpolation_script.sh",
     ],
 )
