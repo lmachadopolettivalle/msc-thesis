@@ -59,18 +59,26 @@ Z_DEPTH = 0.5
 PINOCCHIO_REGION = "fullsky"
 DESI_region = directories.FULLSKY
 
+# Seed used in the PINOCCHIO Run
+# NOTE: the original PINOCCHIO run used the default seed 486604, but the directory structure did not take this into account
+# Therefore, if using the original PINOCCHIO run, set SEED to None,
+# which will make the code use the original path to the output files
+SEED = "666666"
+
 # Directory containing PINOCCHIO outputs.
 # This is where the subhalo catalog will also be saved at the end of this script.
 dirname = directories.pinocchio_halo_files_path(
     particle_count=particle_count_pinocchio,
     z_depth=Z_DEPTH,
     pinocchio_region=PINOCCHIO_REGION,
+    seed=SEED,
 )
 output_dirname = directories.pinocchio_subhalo_files_path(
     particle_count=particle_count_pinocchio,
     z_depth=Z_DEPTH,
     pinocchio_region=PINOCCHIO_REGION,
     DESI_region=DESI_region,
+    seed=SEED,
 )
 
 if os.path.isdir(output_dirname):
@@ -80,7 +88,7 @@ else:
     os.mkdir(output_dirname)
     print("Created output directory successfully.")
 
-pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{PINOCCHIO_REGION}_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
+pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{PINOCCHIO_REGION}_{particle_count_pinocchio}{'_'+SEED if SEED is not None else ''}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
 
 RUN_FLAG = "luis" # Corresponds to "RunFlag" in PINOCCHIO parameter file. Name of the run being analyzed.
 

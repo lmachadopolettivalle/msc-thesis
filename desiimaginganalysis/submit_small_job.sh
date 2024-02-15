@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --test-only
 #SBATCH --mem-per-cpu=50G
 #SBATCH -n 1
 #SBATCH -t 04:00:00

@@ -3,6 +3,7 @@
 ## Step 1: PINOCCHIO
 
 To run PINOCCHIO, execute `./submit_pinocchio.sh`. This will change into the appropriate directory (where we wish to store the output data, i.e. in `scratch`), submit the job using Slurm, and change back into the original directory. As a result, the input files can live at `home/` while the outputs are saved in `scratch/`.
+(Note: the original seed used was 486604)
 
 Reminders:
 - Modify `submit_pinocchio.sh` to `cd` into the appropriate output directory

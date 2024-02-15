@@ -41,9 +41,15 @@ USE_MAG_R = True
 parser = argparse.ArgumentParser()
 parser.add_argument("--run_id", type=int, required=True)
 parser.add_argument("--region", type=str, required=True)
+DEFAULT_SEED = "0"
+parser.add_argument("--seed", type=str, required=False, default=DEFAULT_SEED)
+
 args = parser.parse_args()
 run_id = args.run_id
 DESI_region = args.region
+seed = args.seed
+if seed == DEFAULT_SEED:
+    seed = None
 
 # Number of particles (cube root) used in run
 # This determines the path where the data is stored
@@ -58,6 +64,7 @@ PATH_2PCF = directories.path_2PCF(
     pinocchio_region=PINOCCHIO_REGION,
     DESI_region=DESI_region,
     run_id=run_id,
+    seed=seed,
 )
 if os.path.isdir(PATH_2PCF):
     print(f"{PATH_2PCF} directory already exists.")
@@ -74,6 +81,7 @@ galaxies = load_sham_galaxies(
     pinocchio_region=PINOCCHIO_REGION,
     DESI_region=DESI_region,
     run_id=run_id,
+    seed=seed,
 )
 
 # For BASS, compute r-primed magnitudes
@@ -143,8 +151,19 @@ rmag_bins = [
 ]
 
 # Compute correlation function
+
+# Many bins, useful for plotting
 nbins = 24
 bins = np.logspace(np.log10(1e-3), np.log10(20), nbins + 1, endpoint=True)
+
+"""
+# Few bins, useful for covariance matrix
+nbins = 7
+tmp_bins = np.logspace(np.log10(6e-2), np.log10(3), nbins)
+bins = (tmp_bins[:-1] + tmp_bins[1:]) / 2
+"""
+
+
 nthreads = 8
 
 # Pre-compute randoms-related data

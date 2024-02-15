@@ -9,6 +9,8 @@ from mask import mask
 
 from constants import BASS_MzLS, DECaLS_NGC, DECaLS_SGC
 
+EXTINCTION = False
+
 MAG_R_PRIMED = True
 if MAG_R_PRIMED:
     MAG_R = "MAG_R_PRIMED"
@@ -18,12 +20,16 @@ else:
 #REGIONS = (BASS_MzLS, )
 #REGIONS = (DECaLS_NGC, )
 #REGIONS = (DECaLS_SGC, )
-REGIONS = (BASS_MzLS, DECaLS_NGC, DECaLS_SGC, )
+REGIONS = (BASS_MzLS, DECaLS_NGC, DECaLS_SGC)
 
 # Load target data
 print("Loading target data")
 targets_nside = 512
-targets = load_processed_target_data(regions=REGIONS, extinction_correction=True, apply_mask=True)
+targets = load_processed_target_data(regions=REGIONS, extinction_correction=EXTINCTION, apply_mask=True)
+
+# Important: shift in r-mag due to use of Tractor vs. SExtractor
+print(f"{targets}")
+targets[MAG_R] += 0.1
 
 # Load randoms
 print("Loading randoms")
@@ -64,6 +70,8 @@ bgs_category_target_ids = {
     "Bright": np.where(targets["BGS_TARGET"] == BGS_BRIGHT)[0],
     "Faint": np.where(targets["BGS_TARGET"] == BGS_FAINT)[0],
 }
+
+
 
 rmag_bins = {
     "Bright": [
@@ -130,9 +138,9 @@ for bgs_category_name, ids in bgs_category_target_ids.items():
             DR_counts, RR_counts
         )
 
-        with open(f"/cluster/scratch/lmachado/DataProducts/2PCF/{REGIONS if len(REGIONS) > 1 else REGIONS[0]}_2PCF_bins_{bgs_category_name}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if MAG_R_PRIMED else 'unprimed'}.npy", "wb") as f:
+        with open(f"/cluster/scratch/lmachado/DataProducts/2PCF/{REGIONS if len(REGIONS) > 1 else REGIONS[0]}_2PCF_bins_{bgs_category_name}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if MAG_R_PRIMED else 'unprimed'}{'_noextinction' if not EXTINCTION else ''}.npy", "wb") as f:
             np.save(f, bins[:-1])
-        with open(f"/cluster/scratch/lmachado/DataProducts/2PCF/{REGIONS if len(REGIONS) > 1 else REGIONS[0]}_2PCF_wtheta_{bgs_category_name}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if MAG_R_PRIMED else 'unprimed'}.npy", "wb") as f:
+        with open(f"/cluster/scratch/lmachado/DataProducts/2PCF/{REGIONS if len(REGIONS) > 1 else REGIONS[0]}_2PCF_wtheta_{bgs_category_name}_rmag_range{rmag_low:.1f}-{rmag_high:.1f}_{'primed' if MAG_R_PRIMED else 'unprimed'}{'_noextinction' if not EXTINCTION else ''}.npy", "wb") as f:
             np.save(f, wtheta)
 
 

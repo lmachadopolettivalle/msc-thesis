@@ -13,6 +13,7 @@ def load_sham_galaxies(
     pinocchio_region="fullsky",
     DESI_region=directories.BASS_MzLS,
     run_id=146,
+    seed=None,
 ):
     # Load x, y, z positions
     # Path to output data from SHAM
@@ -22,6 +23,7 @@ def load_sham_galaxies(
         pinocchio_region=pinocchio_region,
         DESI_region=DESI_region,
         run_id=run_id,
+        seed=seed,
     )
 
     galaxies = {}

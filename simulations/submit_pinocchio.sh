@@ -1,4 +1,4 @@
-cd "/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/2048cubed/z0.5/fullsky/"
+cd "/cluster/scratch/lmachado/PINOCCHIO_OUTPUTS/seed666666/2048cubed/z0.5/fullsky/"
 
 sbatch /cluster/home/lmachado/msc-thesis/simulations/sbatch_pinocchio_script.sh
 

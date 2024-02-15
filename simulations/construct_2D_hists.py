@@ -43,12 +43,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--run_id", type=int, required=True)
 parser.add_argument("--particle_count_pinocchio", type=int, required=True)
 parser.add_argument("--region", type=str, required=True)
+DEFAULT_SEED = "0"
+parser.add_argument("--seed", type=str, required=False, default=DEFAULT_SEED)
 
 args = parser.parse_args()
 
 run_id = args.run_id
 particle_count_pinocchio = args.particle_count_pinocchio
 region = args.region
+seed = args.seed
+if seed == DEFAULT_SEED:
+    seed = None
 
 # Get details of run
 run_details = get_details_of_run(run_id)
@@ -61,7 +66,7 @@ quenching_time = run_details["quenching_time"]
 # Configurations, filenames and directories
 # ------------------------------
 
-pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{PINOCCHIO_REGION}_{particle_count_pinocchio}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
+pinocchio_output_filename = f"/cluster/home/lmachado/msc-thesis/simulations/pinocchio_output_{PINOCCHIO_REGION}_{particle_count_pinocchio}{('_'+seed) if seed is not None else ''}" # Path to SLURM output from PINOCCHIO, which contains many useful details on the run
 
 # Directory where subhalo files are stored
 # These were generated with the subhalo code
@@ -70,6 +75,7 @@ dirname = directories.pinocchio_subhalo_files_path(
     z_depth=Z_DEPTH,
     pinocchio_region=PINOCCHIO_REGION,
     DESI_region=region,
+    seed=seed,
 )
 halo_subhalo_files = "pinocchio_masked_halos_subhalos_plc"
 
@@ -85,6 +91,7 @@ run_directory = directories.path_run(
     pinocchio_region=PINOCCHIO_REGION,
     DESI_region=region,
     run_id=run_id,
+    seed=seed,
 )
 if os.path.isdir(run_directory):
     print(f"{run_directory} directory already exists.")

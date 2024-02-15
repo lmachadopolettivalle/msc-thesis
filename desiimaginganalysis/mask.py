@@ -9,6 +9,7 @@ from desitarget.geomask import hp_in_box, nside2nside
 BASS_MzLS = "BASS-MzLS"
 DECaLS_NGC = "DECaLS-NGC"
 DECaLS_SGC = "DECaLS-SGC"
+DES = "DES"
 ALL_REGIONS = (BASS_MzLS, DECaLS_NGC, DECaLS_SGC)
 
 def mask(pixel_ids, nside, regions=ALL_REGIONS):
@@ -17,9 +18,6 @@ def mask(pixel_ids, nside, regions=ALL_REGIONS):
     # each pixel is within the mask.
     # Can choose north, south, or both
     # for the mask region used.
-    for region in regions:
-        if region not in ALL_REGIONS:
-            raise ValueError("Region is not valid.")
 
     with open ("/cluster/scratch/lmachado/DataProducts/masks/BASS_MzLS_mask.npy", "rb") as f:
         BASS_MzLS_mask = np.load(f)
@@ -27,6 +25,7 @@ def mask(pixel_ids, nside, regions=ALL_REGIONS):
         DECaLS_NGC_mask = np.load(f)
     with open ("/cluster/scratch/lmachado/DataProducts/masks/DECaLS_SGC_mask.npy", "rb") as f:
         DECaLS_SGC_mask = np.load(f)
+    DES_mask = hp.fitsfunc.read_map("/cluster/work/refregier/bernerp/DES/DES_Y1/y1a1_gold_1.0.2_wide_footprint_4096.fit", nest=False)
 
     NSIDE_MASKS = hp.get_nside(BASS_MzLS_mask)
 
@@ -52,10 +51,18 @@ def mask(pixel_ids, nside, regions=ALL_REGIONS):
         order_out="NEST",
         dtype=int,
     )
+    DES_mask = hp.pixelfunc.ud_grade(
+        DES_mask,
+        nside_out=nside,
+        order_in="RING",
+        order_out="NEST",
+        dtype=int,
+    )
 
     BASS_MzLS_results = BASS_MzLS_mask[pixel_ids]
     DECaLS_NGC_results = DECaLS_NGC_mask[pixel_ids]
     DECaLS_SGC_results = DECaLS_SGC_mask[pixel_ids]
+    DES_results = DES_mask[pixel_ids]
 
     results = np.zeros(len(pixel_ids), dtype=int)
 
@@ -65,6 +72,8 @@ def mask(pixel_ids, nside, regions=ALL_REGIONS):
         results = results | DECaLS_NGC_results
     if DECaLS_SGC in regions:
         results = results | DECaLS_SGC_results
+    if DES in regions:
+        results = results | DES_results
 
     return results
 

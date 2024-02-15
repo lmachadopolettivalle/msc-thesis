@@ -1,7 +1,3 @@
-# Read file with data from selected targets
-# Plot histogram of magnitudes and colors
-# Filter based on BGS bright vs. BGS faint
-
 from matplotlib import pyplot as plt
 import numpy as np
 
@@ -11,6 +7,8 @@ from load_processed_target_data import load_processed_target_data
 # Make copy of CONSTANT_BANDS to allow for local modifications
 BANDS = CONSTANT_BANDS.copy()
 
+REGIONS = {DECaLS_SGC}
+
 # Whether to plot faint targets
 PLOT_FAINT_TARGETS = False
 
@@ -19,10 +17,6 @@ PLOT_FAINT_TARGETS = False
 # since there is no primed g or z
 BANDS.append("r_primed")
 BANDS.sort()
-
-# If True, use magnitudes with extinction correction
-# If False, show magnitudes without extinction correction
-extinction_correction = False
 
 # Parameters for plotting
 bin_count = 90
@@ -45,11 +39,6 @@ plt.rcParams["savefig.bbox"] = "tight"
 bright_plot_color = blue
 faint_plot_color = orange
 
-HISTTYPE = {
-    "north": "step",
-    "south": "stepfilled",
-}
-
 # Number of pixels in each region,
 # to help normalize histograms
 NUMBER_PIXELS_AFTER_MASKING = {
@@ -57,27 +46,22 @@ NUMBER_PIXELS_AFTER_MASKING = {
     "south": 68236,
 }
 
-# Load targets
-print("Loading target data")
-targets = {
-    "north": load_processed_target_data(regions={BASS_MzLS}, extinction_correction=extinction_correction, apply_mask=True),
-    "south": load_processed_target_data(regions={DECaLS_NGC, DECaLS_SGC}, extinction_correction=extinction_correction, apply_mask=True),
-}
+targets = {}
 
+for extinction_correction, label in [(True, "corrected"), (False, "raw")]:
+    targets[label] = load_processed_target_data(regions={DECaLS_NGC, DECaLS_SGC}, extinction_correction=extinction_correction, apply_mask=True)
+
+bright_target_ids = {
+    k: np.where(values["BGS_TARGET"] == BGS_BRIGHT)[0]
+    for k, values in targets.items()
+}
 bright_targets = {
-    region: np.where(values["BGS_TARGET"] == BGS_BRIGHT)[0]
-    for region, values in targets.items()
+    k: {
+        inner_key: inner_value[bright_target_ids[k]]
+        for inner_key, inner_value in v.items()
+    }
+    for k, v in targets.items()
 }
-faint_targets = {
-    region: np.where(values["BGS_TARGET"] == BGS_FAINT)[0]
-    for region, values in targets.items()
-}
-
-# Plot histograms of magnitudes in 3 bands
-print("Number of north bright objects:", len(targets["north"]["MAG_R"][bright_targets["north"]]))
-print("Number of north faint objects:", len(targets["north"]["MAG_R"][faint_targets["north"]]))
-print("Number of south bright objects:", len(targets["south"]["MAG_R"][bright_targets["south"]]))
-print("Number of south faint objects:", len(targets["south"]["MAG_R"][faint_targets["south"]]))
 
 # Determine binning for each color band
 bins = {
@@ -89,6 +73,32 @@ bins = {
 
 # Begin plotting
 print("Plotting magnitude histograms")
+
+for label, values in bright_targets.items():
+    print("Number of north bright objects:", len(values["MAG_R"]))
+    plt.hist(
+        values["MAG_R"],
+        alpha=0.5,
+        linewidth=LINEWIDTH, density=False, histtype="step", label=f"{label}", color=bright_plot_color
+    )
+
+plt.legend()
+plt.show()
+exit()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Overplot r-primed and r-unprimed for comparison
 bright_label = "BGS Bright"

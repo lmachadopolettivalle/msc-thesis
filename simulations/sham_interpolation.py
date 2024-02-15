@@ -50,12 +50,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--run_id", type=int, required=True)
 parser.add_argument("--particle_count_pinocchio", type=int, required=True)
 parser.add_argument("--region", type=str, required=True)
+DEFAULT_SEED = "0"
+parser.add_argument("--seed", type=str, required=False, default=DEFAULT_SEED)
 
 args = parser.parse_args()
 
 run_id = args.run_id
 particle_count_pinocchio = args.particle_count_pinocchio
 region = args.region # See directories.py for values
+seed = args.seed
+if seed == DEFAULT_SEED:
+    seed = None
 
 # Get details of run
 run_details = get_details_of_run(run_id)
@@ -107,6 +112,7 @@ outfile_dir = directories.path_interpolation(
     pinocchio_region=PINOCCHIO_REGION,
     DESI_region=region,
     run_id=run_id,
+    seed=seed,
 )
 
 outfile_galaxies_base = "ucat_sorted_app_mag_interp_"
@@ -124,6 +130,7 @@ infile_hist2D_dir = directories.path_histograms(
     pinocchio_region=PINOCCHIO_REGION,
     DESI_region=region,
     run_id=run_id,
+    seed=seed,
 )
 infile_hist_red = 'pinocchio_masked_red_hist2D.npz'
 infile_hist_blue = 'pinocchio_masked_blue_hist2D.npz'
@@ -134,6 +141,7 @@ infile_subhalos_dir = directories.pinocchio_subhalo_files_path(
     z_depth=Z_DEPTH,
     pinocchio_region=PINOCCHIO_REGION,
     DESI_region=region,
+    seed=seed,
 )
 infile_subhalos = 'pinocchio_masked_halos_subhalos_plc'
 
@@ -144,6 +152,7 @@ infile_ucat_sampling_dir = directories.outputs_sampling_path(
     z_depth=Z_DEPTH,
     pinocchio_region=PINOCCHIO_REGION,
     DESI_region=region,
+    seed=None, # None, which makes it use the original PINOCCHIO run's sampling outputs. THese do not need to be regenerated every time, and thus we reuse the same files instead of copying them around the directories.
 )
 
 infile_ucat_z = "sampled_z.npy"
